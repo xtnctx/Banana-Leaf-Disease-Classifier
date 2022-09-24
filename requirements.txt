@@ -2,3 +2,4 @@ tensorflow
 tensorflow-gpu
 matplotlib
 opencv-python
+tabulate
