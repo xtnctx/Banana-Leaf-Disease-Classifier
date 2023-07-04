@@ -1,0 +1,1 @@
+# Desktop application for live streaming and prediction of captured image.
