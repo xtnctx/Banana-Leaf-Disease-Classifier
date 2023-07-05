@@ -91,8 +91,9 @@ class UI(QtWidgets.QWidget):
         
         topleft = QtWidgets.QFrame()
         topleft_layout = QtWidgets.QVBoxLayout(topleft)
-        self.topleft_label = QtWidgets.QLabel()
-        topleft_layout.addWidget(self.topleft_label)
+        self.videoCapture = QtWidgets.QLabel()
+        self.videoCapture.setAlignment(QtCore.Qt.AlignCenter)
+        topleft_layout.addWidget(self.videoCapture)
         topleft.setFrameShape(QtWidgets.QFrame.StyledPanel)
 
         bottom = QtWidgets.QFrame()
@@ -100,7 +101,7 @@ class UI(QtWidgets.QWidget):
 
         font = QtGui.QFont()
         font.setFamily("Poppins Medium")
-        font.setPointSize(12)
+        font.setPointSize(11)
         font.setBold(True)
         font.setWeight(60)
         
@@ -122,40 +123,67 @@ class UI(QtWidgets.QWidget):
         
         splitter1 = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
+        camera_group_box = QtWidgets.QGroupBox("Controls")
+        camera_group_box.setFont(font)
+        camera_layout_box = QtWidgets.QVBoxLayout()
+
+        controlsLayout = QtWidgets.QGridLayout()
+        for row in range(4):
+            controlsLayout.setRowMinimumHeight(row, 50)
+
+        font.setPointSize(9)
+
+        # Brightness
+        self.brightness_label = QtWidgets.QLabel("Brightness")
+        self.brightness_label.setFont(font)
+        controlsLayout.addWidget(self.brightness_label, 0, 0, 1, 1)
+
+        self.brightnessSlider = QtWidgets.QSlider()
+        self.brightnessSlider.setOrientation(QtCore.Qt.Horizontal)
+        controlsLayout.addWidget(self.brightnessSlider, 0, 1, 1, 3)
+
+        # Contrast
+        self.contrast_label = QtWidgets.QLabel("Contrast")
+        self.contrast_label.setFont(font)
+        controlsLayout.addWidget(self.contrast_label, 1, 0, 1, 1)
+
+        self.contrastSlider = QtWidgets.QSlider()
+        self.contrastSlider.setOrientation(QtCore.Qt.Horizontal)
+        controlsLayout.addWidget(self.contrastSlider, 1, 1, 1, 3)
+
+        # Zoom
+        self.zoom_label = QtWidgets.QLabel("Zoom")
+        self.zoom_label.setFont(font)
+        controlsLayout.addWidget(self.zoom_label, 2, 0, 1, 1)
+        
+        self.zoomSlider = QtWidgets.QSlider()
+        self.zoomSlider.setOrientation(QtCore.Qt.Horizontal)
+        controlsLayout.addWidget(self.zoomSlider, 2, 1, 1, 3)
+
+        camera_layout_box.addLayout(controlsLayout)
+
+        # Capture
         topright = QtWidgets.QFrame()
         topright_layout = QtWidgets.QVBoxLayout(topright)
         topright_button = QtWidgets.QPushButton("Capture")
+        font.setPointSize(11)
         topright_button.setFont(font)
         topright_button.clicked.connect(self.capture)
-
-        camera_group_box = QtWidgets.QGroupBox("Camera")
-        camera_layout_box = QtWidgets.QVBoxLayout()
-
-        zoom_layout = QtWidgets.QHBoxLayout()
-
-        zoom_label = QtWidgets.QLabel("Zoom")
-        zoom_label.setStyleSheet("margin: 5px")
-        zoom_layout.addWidget(zoom_label)
-        
-        self.mySlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.mySlider.valueChanged.connect(self.zoom)
-        zoom_layout.addWidget(self.mySlider)
-
-        camera_layout_box.addLayout(zoom_layout)
         camera_layout_box.addWidget(topright_button)
-        camera_group_box.setLayout(camera_layout_box)
 
+
+        camera_group_box.setLayout(camera_layout_box)
         topright_layout.addWidget(camera_group_box)
         topright.setFrameShape(QtWidgets.QFrame.StyledPanel)
 
         splitter1.addWidget(topleft)
         splitter1.addWidget(topright)
-        splitter1.setSizes([200,100])
+        splitter1.setSizes([300, 100])
         
         splitter2 = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         splitter2.addWidget(splitter1)
         splitter2.addWidget(bottom)
-        splitter2.setSizes([1000, 100])
+        splitter2.setSizes([2000, 100])
         
         hbox.addWidget(splitter2)
         
@@ -172,9 +200,9 @@ class UI(QtWidgets.QWidget):
         self.setWindowTitle('QSplitter demo')
 
         # Start camera
-        # self.recorder = Recorder(self)
-        # self.recorder.changePixmap.connect(self.setImage)
-        # self.recorder.start()
+        self.recorder = Recorder(self)
+        self.recorder.changePixmap.connect(self.setImage)
+        self.recorder.start()
 
         self.show()
     
@@ -184,7 +212,7 @@ class UI(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def setImage(self, image):
-        self.topleft_label.setPixmap(QtGui.QPixmap.fromImage(image))
+        self.videoCapture.setPixmap(QtGui.QPixmap.fromImage(image))
     
     def zoom(self):
         sliderVal = self.mySlider.value()
@@ -214,13 +242,6 @@ class ImagePreviewWidget(QtWidgets.QLabel):
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         self.clicked.emit()
         return super().mousePressEvent(ev)
-
-
-
-class AlignDelegate(QtWidgets.QStyledItemDelegate): # Table.cell.alignCenter 
-    def initStyleOption(self, option, index):
-        super(AlignDelegate, self).initStyleOption(option, index)
-        option.displayAlignment = QtCore.Qt.AlignCenter
 
 
 class PreviewImage(QtWidgets.QMainWindow):
@@ -289,49 +310,6 @@ class PreviewImage(QtWidgets.QMainWindow):
         painter.setPen(QtGui.QPen(QtCore.Qt.black))   
         painter.drawRect(self.rect())
 
-
-class MySlider(QtWidgets.QWidget):
-    def __init__(self, name, maxi, mini, font_size, orientation, parent=None):
-        super(MySlider, self).__init__(parent)
-        self.setMinimumSize(100, 200)                                          # +++
-
-#    def make_slider(self, name, posx, posy, maxi, mini, font_size, orientation):
-#        """posx,posy,font_size,max,min = int orientation = Qt.Horizontal or Vertical,name = str name of slider"""
-
-        self.label = QtWidgets.QLabel(name, self)
-#        self.label.setGeometry(posx - 30, posy - 45, 100, 40)  # 210,60
-        self.label.setFont(QtGui.QFont("Sanserif", font_size))
-        self.sliderWidget = QtWidgets.QSlider(self)
-        self.sliderWidget.setOrientation(orientation)
-        self.sliderWidget.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.sliderWidget.setMaximum(maxi)
-        self.sliderWidget.setMinimum(mini)
-        self.sliderWidget.setTickInterval(1)
-#        self.slider.move(posx, posy)
-        self.label2 = QtWidgets.QLabel(str(mini), self)
-        self.label2.setFont(QtGui.QFont("Sanserif", font_size))
-#        self.label2.setGeometry(posx, posy + 90, 50, 20)
-        self.sliderWidget.valueChanged.connect(self.changed_value)
-
-# ++ vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv        
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.addWidget(self.label, alignment = QtCore.Qt.AlignCenter)
-        self.layout.addWidget(self.sliderWidget, alignment = QtCore.Qt.AlignCenter)
-        self.layout.addWidget(self.label2, alignment = QtCore.Qt.AlignCenter)
-        self.layout.addStretch()
-# ++ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    def slider(self):
-        return self.sliderWidget
-
-    def value(self):
-        return self.sliderWidget.value()
-
-    def changed_value(self, val):                                             # + val
-        print(val)
-#        wartosc = self.slider.value()
-#        self.label2.setText(str(wartosc))
-        self.label2.setNum(val)                                               # + val
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
