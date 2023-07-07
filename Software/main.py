@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
+from mywindow import MyWindow
 from pathlib import Path
 import sys
 import cv2
@@ -79,15 +80,14 @@ class Recorder(QtCore.QThread):
                 
 
 class UI(QtWidgets.QWidget):
-    WINDOW_WIDTH = 1000
-    WINDOW_HEIGHT = 600
-
     def __init__(self):
         super(UI, self).__init__()
         self.initUI()
 	
     def initUI(self):
         hbox = QtWidgets.QHBoxLayout(self)
+        hbox.setContentsMargins(5, 5, 5, 5)
+        hbox.setSpacing(0)
         
         topleft = QtWidgets.QFrame()
         topleft_layout = QtWidgets.QVBoxLayout(topleft)
@@ -190,21 +190,21 @@ class UI(QtWidgets.QWidget):
         self.setLayout(hbox)
         QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Cleanlooks'))
 
-        # Center window
-        self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-        qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
+        # # Center window
+        # self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        # qr = self.frameGeometry()
+        # cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        # qr.moveCenter(cp)
+        # self.move(qr.topLeft())
 
-        self.setWindowTitle('QSplitter demo')
+        # self.setWindowTitle('SimbiApp')
 
-        # Start camera
-        self.recorder = Recorder(self)
-        self.recorder.changePixmap.connect(self.setImage)
-        self.recorder.start()
+        # # Start camera
+        # self.recorder = Recorder(self)
+        # self.recorder.changePixmap.connect(self.setImage)
+        # self.recorder.start()
 
-        self.show()
+        # self.show()
     
     def capture(self):
         self.recorder.doCapture.emit(True)
@@ -232,8 +232,8 @@ class ImagePreviewWidget(QtWidgets.QLabel):
         self.setAlignment(QtCore.Qt.AlignCenter)
         self.setPixmap(
             QtGui.QPixmap('./Yanfei.jpg').scaled(
-                100,
-                100, 
+                70,
+                70, 
                 QtCore.Qt.KeepAspectRatio, 
                 transformMode=QtCore.Qt.SmoothTransformation
             )
@@ -311,9 +311,51 @@ class PreviewImage(QtWidgets.QMainWindow):
         painter.drawRect(self.rect())
 
 
+class Root:
+    WINDOW_WIDTH = 1000
+    WINDOW_HEIGHT = 600
+
+    def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
+        self.MainWindow = MainWindow
+        self.centralwidget = QtWidgets.QWidget(self.MainWindow)
+        self.mainLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.setSpacing(0)
+        self.MainWindow.setCentralWidget(self.centralwidget)
+
+        self.toolBar = QtWidgets.QToolBar(self.MainWindow)
+        self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
+        self.actionHome = QtWidgets.QAction(self.MainWindow)
+        self.actionHome.setText("Home")
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("../CPU_Scheduling_Simulator/Icons/house_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionHome.setIcon(icon)
+        self.toolBar.addAction(self.actionHome)
+
+        self.mainLayout.addWidget(UI())
+
+        # Center window
+        self.MainWindow.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        qr = self.MainWindow.frameGeometry()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.MainWindow.move(qr.topLeft())
+
+        self.retranslateUi(self.MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
+
+    def retranslateUi(self, MainWindow: QtWidgets.QMainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "SimbiApp"))
+        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+        
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    ui = UI()
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Root(MainWindow)
+    MainWindow.show()
     sys.exit(app.exec_())
 	
 if __name__ == '__main__':
