@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from mywindow import MyWindow
 from pathlib import Path
+import typing
 import sys
 import cv2
 import os
@@ -311,6 +312,27 @@ class PreviewImage(QtWidgets.QMainWindow):
         painter.drawRect(self.rect())
 
 
+class ToolBar(QtWidgets.QToolBar):
+
+    def __init__(self, parent: QtWidgets.QWidget):
+        super().__init__()
+        self.setParent(parent)
+
+        spacer = QtWidgets.QWidget()
+        self.addWidget(spacer)
+
+        self.setStyleSheet("QToolBar{spacing: 20px;}")
+        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
+        self.setIconSize(QtCore.QSize(50, 40))
+        
+        self.setOrientation(QtCore.Qt.Vertical)
+        self.setIconSize(QtCore.QSize(30, 25))
+        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
+
+    
+
+
+
 class Root:
     WINDOW_WIDTH = 1000
     WINDOW_HEIGHT = 600
@@ -323,15 +345,51 @@ class Root:
         self.mainLayout.setSpacing(0)
         self.MainWindow.setCentralWidget(self.centralwidget)
 
-        self.toolBar = QtWidgets.QToolBar(self.MainWindow)
-        self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
-        self.actionHome = QtWidgets.QAction(self.MainWindow)
-        self.actionHome.setText("Home")
+        font = QtGui.QFont()
+        font.setFamily("Poppins Medium")
+        font.setBold(False)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setPointSize(9)
+        font.setWeight(50)
 
+        self.toolBar = ToolBar(self.MainWindow)
+        self.toolBar.setFont(font)
+        self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
+        
+
+        # self.toolBar.addWidget(left_spacer)
+        # Folder
+        self.actionFolder = QtWidgets.QAction(self.MainWindow)
+        self.actionFolder.setFont(font)
+        self.actionFolder.setText("Folder")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("../CPU_Scheduling_Simulator/Icons/house_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionHome.setIcon(icon)
-        self.toolBar.addAction(self.actionHome)
+        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-folder.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionFolder.setIcon(icon)
+        self.toolBar.addAction(self.actionFolder)
+
+        # Results
+        self.actionResults = QtWidgets.QAction(self.MainWindow)
+        self.actionResults.setFont(font)
+        self.actionResults.setText("Results")
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-growing-chart.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionResults.setIcon(icon)
+        self.toolBar.addAction(self.actionResults)
+
+        # Camera
+        self.actionCamera = QtWidgets.QAction(self.MainWindow)
+        self.actionCamera.setFont(font)
+        self.actionCamera.setText("Camera")
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-camera.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionCamera.setIcon(icon)
+        self.toolBar.addAction(self.actionCamera)
+
+        # self.combo = QtWidgets.QComboBox()
+        # self.combo.insertItems(1,["One","Two","Three"])
+        # self.toolBar.addWidget(self.combo)
+        
 
         self.mainLayout.addWidget(UI())
 
@@ -353,6 +411,7 @@ class Root:
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
     MainWindow = QtWidgets.QMainWindow()
     ui = Root(MainWindow)
     MainWindow.show()
