@@ -1,5 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from mywindow import MyWindow
+from Widgets.toolBar import ToolBar
+from Widgets.imagePreview import ImagePreviewWidget, PreviewImage 
 from pathlib import Path
 import typing
 import sys
@@ -12,8 +14,8 @@ class Recorder(QtCore.QThread):
     scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
 
-    def __init__(self, parent=None) -> None:
-        super().__init__()
+    def __init__(self, parent=None, selectedPath:str='') -> None:
+        QtCore.QThread.__init__(self, parent)
         self.scaleValue = 1
         self.doCaptureValue = False
         self.scale.connect(self.scaleChanged)
@@ -76,16 +78,19 @@ class Recorder(QtCore.QThread):
 
                 # Save current frame
                 if self.doCaptureValue:
+                    # TODO: change to selectedPath
+                    # make selectedPath global preference
+                    # make folder icon red as warning
+                    # disable capture button if selectedPath not specified
                     self.saveImage("./Unspecified", cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
                     self.doCaptureValue = False
-                
+        
+        
 
 class UI(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, parent=None, selectedPath:str=''):
         super(UI, self).__init__()
-        self.initUI()
 	
-    def initUI(self):
         hbox = QtWidgets.QHBoxLayout(self)
         hbox.setContentsMargins(5, 5, 5, 5)
         hbox.setSpacing(0)
@@ -110,15 +115,15 @@ class UI(QtWidgets.QWidget):
         self.black_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.black_sigatoka_label.setFont(font)
 
-        image_preview = ImagePreviewWidget()
-        image_preview.clicked.connect(self.previewClicked) 
+        self.image_preview = ImagePreviewWidget()
+        self.image_preview.clicked.connect(self.previewClicked) 
         
         self.yellow_sigatoka_label = QtWidgets.QLabel("Yellow Sigatoka")
         self.yellow_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.yellow_sigatoka_label.setFont(font)
 
         bottom_layout.addWidget(self.black_sigatoka_label)
-        bottom_layout.addWidget(image_preview)
+        bottom_layout.addWidget(self.image_preview)
         bottom_layout.addWidget(self.yellow_sigatoka_label)
         bottom.setFrameShape(QtWidgets.QFrame.StyledPanel)
         
@@ -159,6 +164,8 @@ class UI(QtWidgets.QWidget):
         
         self.zoomSlider = QtWidgets.QSlider()
         self.zoomSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.zoomSlider.setRange(0, 19)
+        self.zoomSlider.valueChanged.connect(self.zoom)
         controlsLayout.addWidget(self.zoomSlider, 2, 1, 1, 3)
 
         camera_layout_box.addLayout(controlsLayout)
@@ -191,19 +198,10 @@ class UI(QtWidgets.QWidget):
         self.setLayout(hbox)
         QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Cleanlooks'))
 
-        # # Center window
-        # self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-        # qr = self.frameGeometry()
-        # cp = QtWidgets.QDesktopWidget().availableGeometry().center()
-        # qr.moveCenter(cp)
-        # self.move(qr.topLeft())
-
-        # self.setWindowTitle('SimbiApp')
-
-        # # Start camera
-        # self.recorder = Recorder(self)
-        # self.recorder.changePixmap.connect(self.setImage)
-        # self.recorder.start()
+        # Start camera
+        self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
+        self.recorder.changePixmap.connect(self.setImage)
+        self.recorder.start()
 
         # self.show()
     
@@ -216,8 +214,9 @@ class UI(QtWidgets.QWidget):
         self.videoCapture.setPixmap(QtGui.QPixmap.fromImage(image))
     
     def zoom(self):
-        sliderVal = self.mySlider.value()
+        sliderVal = self.zoomSlider.value()
         zoomValue = round(1-(sliderVal/20), 2)
+        print(zoomValue)
         self.recorder.scale.emit(zoomValue)
 
     def previewClicked(self):
@@ -225,117 +224,11 @@ class UI(QtWidgets.QWidget):
         self.second_ui = PreviewImage(image)
 
 
-class ImagePreviewWidget(QtWidgets.QLabel):
-    clicked= QtCore.pyqtSignal()
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.setAlignment(QtCore.Qt.AlignCenter)
-        self.setPixmap(
-            QtGui.QPixmap('./Yanfei.jpg').scaled(
-                70,
-                70, 
-                QtCore.Qt.KeepAspectRatio, 
-                transformMode=QtCore.Qt.SmoothTransformation
-            )
-        )
-    
-    def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
-        self.clicked.emit()
-        return super().mousePressEvent(ev)
-
-
-class PreviewImage(QtWidgets.QMainWindow):
-    def __init__(self, image:QtGui.QPixmap):
-        super().__init__()
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        w = image.width()
-        h = image.height()
-        x = 500-w-((500-w)//2)
-        y = 390-291-((390-291)//2)
-
-        screen_resolution = QtWidgets.QDesktopWidget().availableGeometry()
-        width = screen_resolution.width()
-        height = screen_resolution.height()
-
-        self.Group_job_table = QtWidgets.QGroupBox(self.centralwidget)
-        self.Group_job_table.setGeometry(QtCore.QRect(x, y, w, h))
-        self.Group_job_table.setStyleSheet('QGroupBox:title {color: rgb(231, 118, 108);}')
-        font = QtGui.QFont()
-        font.setFamily("Poppins Medium")
-        font.setPointSize(15)
-        font.setBold(True)
-        font.setItalic(True)
-        font.setWeight(75)
-        self.Group_job_table.setFont(font)
-        self.Group_job_table.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-        self.Group_job_table.setTitle('I M A G E')
-        self.Group_job_table.setCheckable(False)
-        self.Group_job_table.setChecked(False)
-        self.Group_job_table.setObjectName("Group_job_table")
-
-        qr = self.Group_job_table.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.Group_job_table.move(qr.topLeft())
-
-        self.close_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.close_btn.setText("x")
-        self.close_btn.setGeometry(QtCore.QRect( (width)-35, 5, self.close_btn.width(), self.close_btn.height()))
-        font = QtGui.QFont()
-        font.setPixelSize(25)
-        font.setBold(True)
-        self.close_btn.setFont(font)
-        self.close_btn.setStyleSheet("color: white; border: 0px")
-        self.close_btn.setFixedSize(30, 30)
-        self.close_btn.clicked.connect(self.hide)
-
-        self.image = QtWidgets.QLabel(self.Group_job_table)
-        self.image.setPixmap(image)
-
-        # this will hide the title bar
-        self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        
-        # setting  the geometry of window
-        self.setGeometry(100, 100, 400, 300)
-        self.setCentralWidget(self.centralwidget)
-        QtCore.QMetaObject.connectSlotsByName(self)
-        self.showFullScreen()
-    
-    def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.setOpacity(0.7)
-        painter.setBrush(QtCore.Qt.black)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black))   
-        painter.drawRect(self.rect())
-
-
-class ToolBar(QtWidgets.QToolBar):
-
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__()
-        self.setParent(parent)
-
-        spacer = QtWidgets.QWidget()
-        self.addWidget(spacer)
-
-        self.setStyleSheet("QToolBar{spacing: 20px;}")
-        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(QtCore.QSize(50, 40))
-        
-        self.setOrientation(QtCore.Qt.Vertical)
-        self.setIconSize(QtCore.QSize(30, 25))
-        self.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
-
-    
-
-
-
 class Root:
     WINDOW_WIDTH = 1000
     WINDOW_HEIGHT = 600
+
+    selectedPath = ''
 
     def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
         self.MainWindow = MainWindow
@@ -345,53 +238,15 @@ class Root:
         self.mainLayout.setSpacing(0)
         self.MainWindow.setCentralWidget(self.centralwidget)
 
-        font = QtGui.QFont()
-        font.setFamily("Poppins Medium")
-        font.setBold(False)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setPointSize(9)
-        font.setWeight(50)
-
         self.toolBar = ToolBar(self.MainWindow)
-        self.toolBar.setFont(font)
+        self.toolBar.actionFolder.triggered.connect(self.selectPath)
         self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-
-        # self.toolBar.addWidget(left_spacer)
-        # Folder
-        self.actionFolder = QtWidgets.QAction(self.MainWindow)
-        self.actionFolder.setFont(font)
-        self.actionFolder.setText("Folder")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-folder.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionFolder.setIcon(icon)
-        self.toolBar.addAction(self.actionFolder)
-
-        # Results
-        self.actionResults = QtWidgets.QAction(self.MainWindow)
-        self.actionResults.setFont(font)
-        self.actionResults.setText("Results")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-growing-chart.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionResults.setIcon(icon)
-        self.toolBar.addAction(self.actionResults)
-
-        # Camera
-        self.actionCamera = QtWidgets.QAction(self.MainWindow)
-        self.actionCamera.setFont(font)
-        self.actionCamera.setText("Camera")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-camera.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionCamera.setIcon(icon)
-        self.toolBar.addAction(self.actionCamera)
-
         # self.combo = QtWidgets.QComboBox()
         # self.combo.insertItems(1,["One","Two","Three"])
         # self.toolBar.addWidget(self.combo)
         
-
-        self.mainLayout.addWidget(UI())
+        self.mainLayout.addWidget(UI(parent=self.MainWindow))
 
         # Center window
         self.MainWindow.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
@@ -407,7 +262,42 @@ class Root:
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "SimbiApp"))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+    
+    # ToolBar
+    def selectPath(self):
+        ''' Folder '''
+        self.fileDialog = FileDialog()
+        self.fileDialog.show()
+
+        # self.selectedPath = str(self.fileDialog.getExistingDirectory())
+
+        # self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
+        # self.MainWindow.setWindowTitle(self.selectedPath)
+
         
+
+class FileDialog(QtWidgets.QWidget):
+    def __init__(self):
+       super(FileDialog, self).__init__()
+       self.setWindowTitle("Select Directory")
+
+       self.fileDialog = QtWidgets.QFileDialog(self)
+       self.fileDialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog)
+       self.fileDialog.setWindowFlags(QtCore.Qt.Widget)
+       self.fileDialog.setDirectory(os.getcwd())
+       
+       
+       
+       mainLayout = QtWidgets.QVBoxLayout()
+       mainLayout.addWidget(self.fileDialog)
+       self.setLayout(mainLayout)
+
+
+
+class CusFileDialog(QtWidgets.QFileDialog):
+    def __init__(self):
+        super().__init__()
+    
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
