@@ -1,9 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from mywindow import MyWindow
 from Widgets.toolBar import ToolBar
-from Widgets.imagePreview import ImagePreviewWidget, PreviewImage 
-from pathlib import Path
-import typing
+from Widgets.imagePreview import ImagePreviewWidget, PreviewImage
+from Widgets.camOpts import CamOptions
 import sys
 import cv2
 import os
@@ -13,19 +11,28 @@ class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
     scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
+    pause = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent=None, selectedPath:str='') -> None:
         QtCore.QThread.__init__(self, parent)
+
         self.scaleValue = 1
-        self.doCaptureValue = False
         self.scale.connect(self.scaleChanged)
+
+        self.doCaptureValue = False
         self.doCapture.connect(self.onCapture)
+
+        self.pauseValue = False
+        self.pause.connect(self.pauseEmitted)
 
     def scaleChanged(self, value):
         self.scaleValue = value
     
     def onCapture(self, signal):
         self.doCaptureValue = signal
+    
+    def pauseEmitted(self, value):
+        self.pauseValue = value
 
     def saveImage(self, imagePath, image):
         imageName = 'capture'
@@ -56,7 +63,7 @@ class Recorder(QtCore.QThread):
             ret, frame = cap.read()
             self.scaleValue = round(self.scaleValue, 2)
 
-            if ret:
+            if ret and not self.pauseValue:
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 rgbImage = cv2.flip(rgbImage, 1)
                 h, w, ch = rgbImage.shape
@@ -202,8 +209,6 @@ class UI(QtWidgets.QWidget):
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
         self.recorder.changePixmap.connect(self.setImage)
         self.recorder.start()
-
-        # self.show()
     
     def capture(self):
         self.recorder.doCapture.emit(True)
@@ -238,17 +243,17 @@ class Root:
         self.mainLayout.setSpacing(0)
         self.MainWindow.setCentralWidget(self.centralwidget)
 
+        # ToolBar
         self.toolBar = ToolBar(self.MainWindow)
         self.toolBar.actionFolder.triggered.connect(self.selectPath)
+        self.toolBar.actionAnalytics.triggered.connect(self.showAnalytics)
+        self.toolBar.actionCamera.triggered.connect(self.selectCamera)
         self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-        # self.combo = QtWidgets.QComboBox()
-        # self.combo.insertItems(1,["One","Two","Three"])
-        # self.toolBar.addWidget(self.combo)
-        
-        self.mainLayout.addWidget(UI(parent=self.MainWindow))
+        self.ui = UI(parent=self.MainWindow)
+        self.mainLayout.addWidget(self.ui)
 
-        # Center window
+        # Center the main window
         self.MainWindow.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
         qr = self.MainWindow.frameGeometry()
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
@@ -261,43 +266,31 @@ class Root:
     def retranslateUi(self, MainWindow: QtWidgets.QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "SimbiApp"))
-        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+        self.toolBar.setWindowTitle(_translate("MainWindow", "ToolBar"))
     
     # ToolBar
     def selectPath(self):
         ''' Folder '''
-        self.fileDialog = FileDialog()
-        self.fileDialog.show()
-
-        # self.selectedPath = str(self.fileDialog.getExistingDirectory())
-
-        # self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
-        # self.MainWindow.setWindowTitle(self.selectedPath)
-
-        
-
-class FileDialog(QtWidgets.QWidget):
-    def __init__(self):
-       super(FileDialog, self).__init__()
-       self.setWindowTitle("Select Directory")
-
-       self.fileDialog = QtWidgets.QFileDialog(self)
-       self.fileDialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog)
-       self.fileDialog.setWindowFlags(QtCore.Qt.Widget)
-       self.fileDialog.setDirectory(os.getcwd())
-       
-       
-       
-       mainLayout = QtWidgets.QVBoxLayout()
-       mainLayout.addWidget(self.fileDialog)
-       self.setLayout(mainLayout)
-
-
-
-class CusFileDialog(QtWidgets.QFileDialog):
-    def __init__(self):
-        super().__init__()
+        self.ui.recorder.pause.emit(True)
+        self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
+        self.MainWindow.setWindowTitle(self.selectedPath)
+        self.toolBar.actionFolder.setToolTip(self.selectedPath)
+        self.ui.recorder.pause.emit(False)
     
+    def showAnalytics(self):
+        ''' Analytics'''
+        print('Analytics')
+    
+    def selectCamera(self):
+        ''' Camera'''
+        self.camOption = CamOptions()
+        self.camOption.camUsed.connect(self.onCamSelectedIndex)
+        self.camOption.show()
+        print(self.camOption.comboBox.currentText())
+    
+    def onCamSelectedIndex(self, index):
+        print(f'camera used: {index}')
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
