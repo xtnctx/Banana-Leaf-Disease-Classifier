@@ -27,15 +27,54 @@ class Analytics(QtWidgets.QWidget):
         topleftFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         topleftLayout = QtWidgets.QVBoxLayout(topleftFrame)
 
-        test1 = QtWidgets.QLabel('Test1')
-        topleftLayout.addWidget(test1)
+        titleOverallLayout = QtWidgets.QVBoxLayout()
+        titleOverallLayout.setSpacing(0)
+        titleOverallLayout.setContentsMargins(0, 0, 0, 0)
+
+        titleOverallLabel = QtWidgets.QLabel('Overall Confidence')
+        titleOverallLabel.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=60))
+        titleOverallLabel.setAlignment(QtCore.Qt.AlignCenter)
+        titleOverallLayout.addWidget(titleOverallLabel)
+
+        self.overallConfidenceLabel = QtWidgets.QLabel('84.1%')
+        self.overallConfidenceLabel.setFont(QtGui.QFont("Poppins", pointSize=32, weight=75))
+        self.overallConfidenceLabel.setAlignment(QtCore.Qt.AlignCenter)
+        titleOverallLayout.addWidget(self.overallConfidenceLabel)
+        
+
+        subTotalLayout = QtWidgets.QGridLayout()
+        subTotalLayout.setContentsMargins(10, 0, 10, 0)
+        subTotalFont = QtGui.QFont("Poppins Medium", pointSize=8, weight=50)
+
+        blackSigatokaTotalLabel = QtWidgets.QLabel('Black Sigatoka')
+        blackSigatokaTotalLabel.setFont(subTotalFont)
+        subTotalLayout.addWidget(blackSigatokaTotalLabel, 0, 0, 1, 1)
+
+        self.blackSigatokaTotalConfidence = QtWidgets.QLabel('84.3%')
+        self.blackSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
+        self.blackSigatokaTotalConfidence.setFont(subTotalFont)
+        subTotalLayout.addWidget(self.blackSigatokaTotalConfidence, 0, 1, 1, 3)
+
+        yellowSigatokaTotalLabel = QtWidgets.QLabel('Yellow Sigatoka')
+        yellowSigatokaTotalLabel.setFont(subTotalFont)
+        subTotalLayout.addWidget(yellowSigatokaTotalLabel, 1, 0, 1, 1)
+
+        self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('83.9%')
+        self.yellowSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
+        self.yellowSigatokaTotalConfidence.setFont(subTotalFont)
+        subTotalLayout.addWidget(self.yellowSigatokaTotalConfidence, 1, 1, 1, 3)
+
+        topleftLayout.addLayout(titleOverallLayout)
+        topleftLayout.addLayout(subTotalLayout)
 
         # BOTTOM-LEFT
         bottomleftFrame = QtWidgets.QFrame()
         bottomleftFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         bottomleftLayout = QtWidgets.QVBoxLayout(bottomleftFrame)
 
-        test2 = QtWidgets.QLabel('Test2')
+        test2 = QtWidgets.QLabel('Pie Graph')
+        test2.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=50))
+        test2.setAlignment(QtCore.Qt.AlignCenter)
         bottomleftLayout.addWidget(test2)
 
         # SPLITTER FOR TOP-LEFT & BOTTOM-LEFT
@@ -43,7 +82,7 @@ class Analytics(QtWidgets.QWidget):
         splitterLeft.addWidget(titleFrame)
         splitterLeft.addWidget(topleftFrame)
         splitterLeft.addWidget(bottomleftFrame)
-        splitterLeft.setSizes([100, 500, 500])
+        splitterLeft.setSizes([100, 400, 600])
 
 
         # RIGHT
@@ -58,7 +97,7 @@ class Analytics(QtWidgets.QWidget):
         splitterRight = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitterRight.addWidget(splitterLeft)
         splitterRight.addWidget(rightFrame)
-        splitterRight.setSizes([250, 600])
+        splitterRight.setSizes([180, 600])
 
         vbox.addWidget(splitterRight)
         self.setLayout(vbox)
