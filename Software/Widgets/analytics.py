@@ -1,8 +1,8 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
 
 class Analytics(QtWidgets.QWidget):
-    WIDTH = 900
-    HEIGHT = 500
+    WIDTH = 720
+    HEIGHT = 420
 
     def __init__(self):
         super().__init__()
@@ -15,11 +15,11 @@ class Analytics(QtWidgets.QWidget):
         titleLayout.setContentsMargins(0, 0, 0, 0)
 
         titleLabel = QtWidgets.QLabel('Analytics')
-        titleLabel.setFont(QtGui.QFont("Poppins", pointSize=16, weight=70))
+        titleLabel.setFont(QtGui.QFont("Poppins", pointSize=12, weight=70))
         titleLayout.addWidget(titleLabel)
 
         dateLabel = QtWidgets.QLabel('April 20, 2023')
-        dateLabel.setFont(QtGui.QFont("Poppins", pointSize=9, weight=60))
+        dateLabel.setFont(QtGui.QFont("Poppins", pointSize=8, weight=60))
         titleLayout.addWidget(dateLabel)
 
         # TOP-LEFT
@@ -37,14 +37,14 @@ class Analytics(QtWidgets.QWidget):
         titleOverallLayout.addWidget(titleOverallLabel)
 
         self.overallConfidenceLabel = QtWidgets.QLabel('84.1%')
-        self.overallConfidenceLabel.setFont(QtGui.QFont("Poppins", pointSize=32, weight=75))
+        self.overallConfidenceLabel.setFont(QtGui.QFont("Poppins", pointSize=22, weight=75))
         self.overallConfidenceLabel.setAlignment(QtCore.Qt.AlignCenter)
         titleOverallLayout.addWidget(self.overallConfidenceLabel)
         
 
         subTotalLayout = QtWidgets.QGridLayout()
         subTotalLayout.setContentsMargins(10, 0, 10, 0)
-        subTotalFont = QtGui.QFont("Poppins Medium", pointSize=8, weight=50)
+        subTotalFont = QtGui.QFont("Poppins Medium", pointSize=8, weight=60)
 
         blackSigatokaTotalLabel = QtWidgets.QLabel('Black Sigatoka')
         blackSigatokaTotalLabel.setFont(subTotalFont)
@@ -72,10 +72,38 @@ class Analytics(QtWidgets.QWidget):
         bottomleftFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         bottomleftLayout = QtWidgets.QVBoxLayout(bottomleftFrame)
 
-        test2 = QtWidgets.QLabel('Pie Graph')
-        test2.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=50))
-        test2.setAlignment(QtCore.Qt.AlignCenter)
-        bottomleftLayout.addWidget(test2)
+        pieTitle = QtWidgets.QLabel('Detected Diseases')
+        pieTitle.setAlignment(QtCore.Qt.AlignCenter)
+        pieTitle.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=60))
+
+        self.pieSeries = QtChart.QPieSeries()
+        self.pieSeries.append('Y', 10)
+        self.pieSeries.append('B', 20)
+        self.pieSeries.setHoleSize(0.40)
+        # pieSeries.setFont(QtGui.QFont("Poppins Medium", pointSize=7, weight=60))
+
+        self.chart = QtChart.QChart()
+        self.chart.addSeries(self.pieSeries)
+        self.chart.setBackgroundVisible(False)
+        self.chart.setMargins(QtCore.QMargins(0, 0, 0, 0))
+        self.chart.setContentsMargins(0, 0, 0, 0)
+        self.chart.layout().setContentsMargins(0, 0, 0, 0)
+        self.chart.setBackgroundRoundness(0)
+
+        self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)
+        print(self.chart.legend())
+        
+
+        self._chart_view = QtChart.QChartView(self.chart)
+        self._chart_view.setAlignment(QtCore.Qt.AlignCenter)
+        self._chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        self._chart_view.setContentsMargins(0, 0, 0, 0)
+
+
+        bottomleftLayout.addWidget(pieTitle)
+        bottomleftLayout.addWidget(self._chart_view)
+
+        
 
         # SPLITTER FOR TOP-LEFT & BOTTOM-LEFT
         splitterLeft = QtWidgets.QSplitter(QtCore.Qt.Vertical)
@@ -146,7 +174,7 @@ class ImagesResultTable(QtWidgets.QTableWidget):
 
 
     def setupColumns(self):
-        font = QtGui.QFont("Poppins Medium", pointSize=8, weight=75)
+        font = QtGui.QFont("Poppins Medium", pointSize=7, weight=75)
         for i, c in enumerate(self.COLUMNS):
             item = QtWidgets.QTableWidgetItem(c)
             item.setFont(font)
