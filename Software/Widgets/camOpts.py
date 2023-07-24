@@ -1,4 +1,16 @@
 from PyQt5 import QtWidgets, QtCore
+from pygrabber.dshow_graph import FilterGraph
+
+def get_available_cameras():
+
+    devices = FilterGraph().get_input_devices()
+
+    available_cameras = {}
+
+    for device_index, device_name in enumerate(devices):
+        available_cameras[device_index] = device_name
+
+    return available_cameras
 
 class CamOptions(QtWidgets.QWidget):
     camUsed = QtCore.pyqtSignal(int)
@@ -18,7 +30,7 @@ class CamOptions(QtWidgets.QWidget):
 
         self.setLayout(vbox)
 
-         # Center the window
+        # Center the window
         self.resize(200, 80)
         qr = self.frameGeometry()
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
