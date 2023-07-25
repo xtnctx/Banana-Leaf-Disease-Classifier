@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from Widgets.toolBar import ToolBar
 from Widgets.imagePreview import ImagePreviewWidget, PreviewImage
 from Widgets.camOpts import CamOptions
+from Widgets.analytics import Analytics
 import sys
 import cv2
 import os
@@ -12,6 +13,10 @@ class Recorder(QtCore.QThread):
     scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
     pause = QtCore.pyqtSignal(bool)
+
+    # OpenCV capture device
+    selectedCameraIndex = 0
+    cap = cv2.VideoCapture(selectedCameraIndex)
 
     def __init__(self, parent=None, selectedPath:str='') -> None:
         QtCore.QThread.__init__(self, parent)
@@ -55,12 +60,16 @@ class Recorder(QtCore.QThread):
         ### !!!!!!!!!
         # DO NEXT !!!
         # make prediction then save to a specified folder
-
-
+    
+    def onCamSelectedIndex(self, index):
+        self.selectedCameraIndex = index
+        self.pauseValue = True
+        self.cap = cv2.VideoCapture(self.selectedCameraIndex)
+        self.pauseValue = False
+ 
     def run(self):
-        cap = cv2.VideoCapture(0)
         while True:
-            ret, frame = cap.read()
+            ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
 
             if ret and not self.pauseValue:
@@ -68,7 +77,7 @@ class Recorder(QtCore.QThread):
                 rgbImage = cv2.flip(rgbImage, 1)
                 h, w, ch = rgbImage.shape
 
-                 #prepare the crop
+                #prepare the crop
                 centerX, centerY = int(h/2),int(w/2)
                 radiusX, radiusY = int(centerX*self.scaleValue), int(centerY*self.scaleValue)
 
@@ -91,7 +100,6 @@ class Recorder(QtCore.QThread):
                     # disable capture button if selectedPath not specified
                     self.saveImage("./Unspecified", cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
                     self.doCaptureValue = False
-        
         
 
 class UI(QtWidgets.QWidget):
@@ -208,7 +216,8 @@ class UI(QtWidgets.QWidget):
         # Start camera
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
         self.recorder.changePixmap.connect(self.setImage)
-        self.recorder.start()
+        if len(CamOptions.get_available_cameras()) > 0:
+            self.recorder.start()
     
     def capture(self):
         self.recorder.doCapture.emit(True)
@@ -234,6 +243,7 @@ class Root:
     WINDOW_HEIGHT = 600
 
     selectedPath = ''
+    availableCameras = {}
 
     def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
         self.MainWindow = MainWindow
@@ -272,24 +282,32 @@ class Root:
     def selectPath(self):
         ''' Folder '''
         self.ui.recorder.pause.emit(True)
+
         self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
         self.MainWindow.setWindowTitle(self.selectedPath)
         self.toolBar.actionFolder.setToolTip(self.selectedPath)
+
         self.ui.recorder.pause.emit(False)
     
     def showAnalytics(self):
         ''' Analytics'''
-        print('Analytics')
+        self.analyticsWidget = Analytics()
+        self.analyticsWidget.show()
     
     def selectCamera(self):
         ''' Camera'''
-        self.camOption = CamOptions()
-        self.camOption.camUsed.connect(self.onCamSelectedIndex)
-        self.camOption.show()
-        print(self.camOption.comboBox.currentText())
-    
-    def onCamSelectedIndex(self, index):
-        print(f'camera used: {index}')
+        self.ui.recorder.pause.emit(True)
+        self.availableCameras = CamOptions.get_available_cameras()
+        self.ui.recorder.pause.emit(False)
+
+        if not self.ui.recorder.isRunning() and len(self.availableCameras) > 0:
+            self.ui.recorder.start()
+        else:
+            self.ui.recorder.pause.emit(True)
+            self.camOption = CamOptions(devices=list(self.availableCameras.values()))
+            self.camOption.camUsed.connect(self.ui.recorder.onCamSelectedIndex)
+            self.ui.recorder.pause.emit(False)
+            self.camOption.show()
 
 
 def main():
