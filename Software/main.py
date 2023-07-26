@@ -47,7 +47,7 @@ class Recorder(QtCore.QThread):
     
     def projectPathSelected(self, path):
         self.selectedPath = path
-        print(self.selectedPath)
+        print(f'New selected path is: {self.selectedPath}')
 
     def saveImage(self, imagePath, image):
         imageName = 'capture'
@@ -153,8 +153,8 @@ class UI(QtWidgets.QWidget):
         
         splitter1 = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        camera_group_box = QtWidgets.QGroupBox("Controls")
-        camera_group_box.setFont(font)
+        self.camera_group_box = QtWidgets.QGroupBox("Controls")
+        self.camera_group_box.setFont(font)
         camera_layout_box = QtWidgets.QVBoxLayout()
 
         controlsLayout = QtWidgets.QGridLayout()
@@ -204,8 +204,8 @@ class UI(QtWidgets.QWidget):
         camera_layout_box.addWidget(topright_button)
 
 
-        camera_group_box.setLayout(camera_layout_box)
-        topright_layout.addWidget(camera_group_box)
+        self.camera_group_box.setLayout(camera_layout_box)
+        topright_layout.addWidget(self.camera_group_box)
         topright.setFrameShape(QtWidgets.QFrame.StyledPanel)
 
         splitter1.addWidget(topleft)
@@ -226,6 +226,7 @@ class UI(QtWidgets.QWidget):
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
         self.recorder.changePixmap.connect(self.setImage)
         if len(CamOptions.get_available_cameras()) > 0 and hasFolderSelected:
+            self.camera_group_box.setEnabled(True)
             self.recorder.start()
     
     def capture(self):
@@ -255,10 +256,10 @@ class Root:
     selectedPath = ''
     availableCameras = {}
 
+    project = utils.Project()
+
     def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
         hasFolderSelected = True
-        project = utils.Project()
-        self.selectedPath = project.path
 
         self.MainWindow = MainWindow
         self.centralwidget = QtWidgets.QWidget(self.MainWindow)
@@ -267,9 +268,10 @@ class Root:
         self.mainLayout.setSpacing(0)
         self.MainWindow.setCentralWidget(self.centralwidget)
 
+        
         # ToolBar
         self.toolBar = ToolBar(self.MainWindow)
-        if self.selectedPath == "":
+        if self.project.path == "":
             self.toolBar.askFolderIcon()
             hasFolderSelected = False
         self.toolBar.actionFolder.triggered.connect(self.selectPath)
@@ -277,7 +279,9 @@ class Root:
         self.toolBar.actionCamera.triggered.connect(self.selectCamera)
         self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-        self.ui = UI(parent=self.MainWindow, selectedPath=self.selectedPath, hasFolderSelected=hasFolderSelected)
+        self.ui = UI(parent=self.MainWindow, selectedPath=self.project.path, hasFolderSelected=hasFolderSelected)
+        if not hasFolderSelected:
+            self.ui.camera_group_box.setDisabled(True)
         self.mainLayout.addWidget(self.ui)
 
         # Center the main window
@@ -300,16 +304,23 @@ class Root:
         ''' Folder '''
         self.ui.recorder.pause.emit(True)
 
-        self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
-        self.MainWindow.setWindowTitle(self.selectedPath)
+        self.project.path = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
+        self.MainWindow.setWindowTitle(self.project.path)
 
         # Create new or load project
-        if self.selectedPath != '' and not utils.isProject(self.selectedPath):
-            utils.mkNewProject(self.selectedPath)
-        
-        self.toolBar.actionFolder.setToolTip(self.selectedPath)
+        if self.project.path != '': 
+            if not utils.isProject(self.project.path):
+                utils.mkNewProject(self.project.path)
+                self.toolBar.update()
+            self.toolBar.setFolderIconToNormal()
 
-        self.ui.recorder.projectPath.emit(self.selectedPath)
+            if not self.ui.recorder.isRunning():
+                self.ui.recorder.start()
+        
+            self.toolBar.actionFolder.setToolTip(self.project.path)
+            self.ui.recorder.projectPath.emit(self.project.path)
+            self.ui.camera_group_box.setEnabled(True)
+
         self.ui.recorder.pause.emit(False)
     
     def showAnalytics(self):
@@ -319,11 +330,14 @@ class Root:
     
     def selectCamera(self):
         ''' Camera'''
+        if self.project.path == '':
+            return
         self.ui.recorder.pause.emit(True)
         self.availableCameras = CamOptions.get_available_cameras()
         self.ui.recorder.pause.emit(False)
 
         if not self.ui.recorder.isRunning() and len(self.availableCameras) > 0:
+            self.ui.camera_group_box.setEnabled(True)
             self.ui.recorder.start()
         else:
             self.ui.recorder.pause.emit(True)
