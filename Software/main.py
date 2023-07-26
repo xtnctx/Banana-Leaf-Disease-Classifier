@@ -3,6 +3,7 @@ from Widgets.toolBar import ToolBar
 from Widgets.imagePreview import ImagePreviewWidget, PreviewImage
 from Widgets.camOpts import CamOptions
 from Widgets.analytics import Analytics
+from Utils import utils
 import sys
 import cv2
 import os
@@ -13,13 +14,15 @@ class Recorder(QtCore.QThread):
     scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
     pause = QtCore.pyqtSignal(bool)
+    projectPath = QtCore.pyqtSignal(str)
 
     # OpenCV capture device
     selectedCameraIndex = 0
     cap = cv2.VideoCapture(selectedCameraIndex)
 
-    def __init__(self, parent=None, selectedPath:str='') -> None:
+    def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
+        print(selectedPath)
 
         self.scaleValue = 1
         self.scale.connect(self.scaleChanged)
@@ -30,6 +33,9 @@ class Recorder(QtCore.QThread):
         self.pauseValue = False
         self.pause.connect(self.pauseEmitted)
 
+        self.selectedPath = selectedPath
+        self.projectPath.connect(self.projectPathSelected)
+
     def scaleChanged(self, value):
         self.scaleValue = value
     
@@ -38,6 +44,10 @@ class Recorder(QtCore.QThread):
     
     def pauseEmitted(self, value):
         self.pauseValue = value
+    
+    def projectPathSelected(self, path):
+        self.selectedPath = path
+        print(self.selectedPath)
 
     def saveImage(self, imagePath, image):
         imageName = 'capture'
@@ -95,15 +105,14 @@ class Recorder(QtCore.QThread):
                 # Save current frame
                 if self.doCaptureValue:
                     # TODO: change to selectedPath
-                    # make selectedPath global preference
                     # make folder icon red as warning
                     # disable capture button if selectedPath not specified
-                    self.saveImage("./Unspecified", cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
+                    self.saveImage(self.selectedPath, cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
                     self.doCaptureValue = False
         
 
 class UI(QtWidgets.QWidget):
-    def __init__(self, parent=None, selectedPath:str=''):
+    def __init__(self, parent=None, selectedPath:str='', hasFolderSelected=False):
         super(UI, self).__init__()
 	
         hbox = QtWidgets.QHBoxLayout(self)
@@ -216,7 +225,7 @@ class UI(QtWidgets.QWidget):
         # Start camera
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
         self.recorder.changePixmap.connect(self.setImage)
-        if len(CamOptions.get_available_cameras()) > 0:
+        if len(CamOptions.get_available_cameras()) > 0 and hasFolderSelected:
             self.recorder.start()
     
     def capture(self):
@@ -238,6 +247,7 @@ class UI(QtWidgets.QWidget):
         self.second_ui = PreviewImage(image)
 
 
+
 class Root:
     WINDOW_WIDTH = 1000
     WINDOW_HEIGHT = 600
@@ -246,6 +256,10 @@ class Root:
     availableCameras = {}
 
     def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
+        hasFolderSelected = True
+        project = utils.Project()
+        self.selectedPath = project.path
+
         self.MainWindow = MainWindow
         self.centralwidget = QtWidgets.QWidget(self.MainWindow)
         self.mainLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -255,12 +269,15 @@ class Root:
 
         # ToolBar
         self.toolBar = ToolBar(self.MainWindow)
+        if self.selectedPath == "":
+            self.toolBar.askFolderIcon()
+            hasFolderSelected = False
         self.toolBar.actionFolder.triggered.connect(self.selectPath)
         self.toolBar.actionAnalytics.triggered.connect(self.showAnalytics)
         self.toolBar.actionCamera.triggered.connect(self.selectCamera)
         self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-        self.ui = UI(parent=self.MainWindow)
+        self.ui = UI(parent=self.MainWindow, selectedPath=self.selectedPath, hasFolderSelected=hasFolderSelected)
         self.mainLayout.addWidget(self.ui)
 
         # Center the main window
@@ -285,8 +302,14 @@ class Root:
 
         self.selectedPath = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
         self.MainWindow.setWindowTitle(self.selectedPath)
+
+        # Create new or load project
+        if self.selectedPath != '' and not utils.isProject(self.selectedPath):
+            utils.mkNewProject(self.selectedPath)
+        
         self.toolBar.actionFolder.setToolTip(self.selectedPath)
 
+        self.ui.recorder.projectPath.emit(self.selectedPath)
         self.ui.recorder.pause.emit(False)
     
     def showAnalytics(self):
