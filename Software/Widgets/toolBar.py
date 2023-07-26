@@ -50,3 +50,13 @@ class ToolBar(QtWidgets.QToolBar):
         icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-camera.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.actionCamera.setIcon(icon)
         self.addAction(self.actionCamera)
+
+    def askFolderIcon(self):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-folder-question.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionFolder.setIcon(icon)
+    
+    def setFolderIconToNormal(self):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("./svgIcons/Nx5gxW0N_V1z/mbri-folder.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionFolder.setIcon(icon)
