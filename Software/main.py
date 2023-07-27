@@ -114,17 +114,28 @@ class Recorder(QtCore.QThread):
 class UI(QtWidgets.QWidget):
     def __init__(self, parent=None, selectedPath:str='', hasFolderSelected=False):
         super(UI, self).__init__()
+        cameras = CamOptions.get_available_cameras()
 	
         hbox = QtWidgets.QHBoxLayout(self)
         hbox.setContentsMargins(5, 5, 5, 5)
         hbox.setSpacing(0)
         
         topleft = QtWidgets.QFrame()
-        topleft_layout = QtWidgets.QVBoxLayout(topleft)
+        self.topleft_layout = QtWidgets.QVBoxLayout(topleft)
         self.videoCapture = QtWidgets.QLabel()
+
+        if not(len(cameras) > 0 and hasFolderSelected):
+            self.videoCapture = QtWidgets.QLabel("Select a project directory, the camera should start.")
+            font = self.videoCapture.font()
+            font.setFamily("Verdana")
+            font.setPointSize(8)
+            self.videoCapture.setFont(font)
+
         self.videoCapture.setAlignment(QtCore.Qt.AlignCenter)
-        topleft_layout.addWidget(self.videoCapture)
+        self.topleft_layout.addWidget(self.videoCapture)
         topleft.setFrameShape(QtWidgets.QFrame.StyledPanel)
+
+        
 
         bottom = QtWidgets.QFrame()
         bottom_layout = QtWidgets.QHBoxLayout(bottom)
@@ -225,7 +236,7 @@ class UI(QtWidgets.QWidget):
         # Start camera
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
         self.recorder.changePixmap.connect(self.setImage)
-        if len(CamOptions.get_available_cameras()) > 0 and hasFolderSelected:
+        if len(cameras) > 0 and hasFolderSelected:
             self.camera_group_box.setEnabled(True)
             self.recorder.start()
     
@@ -246,6 +257,9 @@ class UI(QtWidgets.QWidget):
     def previewClicked(self):
         image = QtGui.QPixmap('./Yanfei.jpg')
         self.second_ui = PreviewImage(image)
+    
+    
+
 
 
 
@@ -315,13 +329,15 @@ class Root:
             self.toolBar.setFolderIconToNormal()
 
             if not self.ui.recorder.isRunning():
+                self.ui.videoCapture.setText('')
                 self.ui.recorder.start()
         
             self.toolBar.actionFolder.setToolTip(self.project.path)
             self.ui.recorder.projectPath.emit(self.project.path)
             self.ui.camera_group_box.setEnabled(True)
-
+            
         self.ui.recorder.pause.emit(False)
+        print(self.ui.videoCapture.text())
     
     def showAnalytics(self):
         ''' Analytics'''
