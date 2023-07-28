@@ -3,7 +3,8 @@ from Widgets.toolBar import ToolBar
 from Widgets.imagePreview import ImagePreviewWidget, PreviewImage
 from Widgets.camOpts import CamOptions
 from Widgets.analytics import Analytics
-from Utils import utils
+from Utils.utils import Project
+from Config import settings
 import sys
 import cv2
 import os
@@ -50,8 +51,8 @@ class Recorder(QtCore.QThread):
         print(f'New selected path is: {self.selectedPath}')
 
     def saveImage(self, imagePath, image):
-        imageName = 'capture'
-        f_extension = '.jpg'
+        imageName = settings.imageName
+        f_extension = settings.f_extension
         
         # Create folder if does not exist
         if not os.path.isdir(imagePath):
@@ -68,8 +69,7 @@ class Recorder(QtCore.QThread):
         cv2.imwrite(newFile, image)
 
         ### !!!!!!!!!
-        # DO NEXT !!!
-        # make prediction then save to a specified folder
+        # TODO: make prediction then save to a specified folder
     
     def onCamSelectedIndex(self, index):
         self.selectedCameraIndex = index
@@ -88,7 +88,7 @@ class Recorder(QtCore.QThread):
                 h, w, ch = rgbImage.shape
 
                 #prepare the crop
-                centerX, centerY = int(h/2),int(w/2)
+                centerX, centerY = int(h/2), int(w/2)
                 radiusX, radiusY = int(centerX*self.scaleValue), int(centerY*self.scaleValue)
 
                 minX, maxX = centerX-radiusX, centerX+radiusX
@@ -99,15 +99,13 @@ class Recorder(QtCore.QThread):
 
                 bytesPerLine = ch * w
                 convertToQtFormat = QtGui.QImage(resized_cropped, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
-                p = convertToQtFormat.scaled(640, 480, QtCore.Qt.KeepAspectRatio)
+                p = convertToQtFormat.scaled(*settings.camera_scale)
                 self.changePixmap.emit(p)
 
                 # Save current frame
                 if self.doCaptureValue:
-                    # TODO: change to selectedPath
-                    # make folder icon red as warning
-                    # disable capture button if selectedPath not specified
-                    self.saveImage(self.selectedPath, cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
+                    # TODO: saveImage to a its folder after classifying 
+                    self.saveImage(f'{self.selectedPath}', cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
                     self.doCaptureValue = False
         
 
@@ -140,20 +138,16 @@ class UI(QtWidgets.QWidget):
         bottom = QtWidgets.QFrame()
         bottom_layout = QtWidgets.QHBoxLayout(bottom)
 
-        font = QtGui.QFont()
-        font.setFamily("Poppins Medium")
-        font.setPointSize(11)
-        font.setBold(True)
-        font.setWeight(60)
+        font = QtGui.QFont("Poppins Medium", pointSize=11, weight=60)
         
-        self.black_sigatoka_label = QtWidgets.QLabel("Black Sigatoka")
+        self.black_sigatoka_label = QtWidgets.QLabel(settings.b_sigatoka)
         self.black_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.black_sigatoka_label.setFont(font)
 
         self.image_preview = ImagePreviewWidget()
         self.image_preview.clicked.connect(self.previewClicked) 
         
-        self.yellow_sigatoka_label = QtWidgets.QLabel("Yellow Sigatoka")
+        self.yellow_sigatoka_label = QtWidgets.QLabel(settings.y_sigatoka)
         self.yellow_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.yellow_sigatoka_label.setFont(font)
 
@@ -242,7 +236,6 @@ class UI(QtWidgets.QWidget):
     
     def capture(self):
         self.recorder.doCapture.emit(True)
-        print('sds')
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def setImage(self, image):
@@ -258,19 +251,15 @@ class UI(QtWidgets.QWidget):
         image = QtGui.QPixmap('./Yanfei.jpg')
         self.second_ui = PreviewImage(image)
     
-    
-
-
-
 
 class Root:
-    WINDOW_WIDTH = 1000
-    WINDOW_HEIGHT = 600
+    WINDOW_WIDTH = settings.WINDOW_WIDTH
+    WINDOW_HEIGHT = settings.WINDOW_HEIGHT
+
+    project = Project()
 
     selectedPath = ''
     availableCameras = {}
-
-    project = utils.Project()
 
     def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
         hasFolderSelected = True
@@ -310,8 +299,8 @@ class Root:
 
     def retranslateUi(self, MainWindow: QtWidgets.QMainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "SimbiApp"))
-        self.toolBar.setWindowTitle(_translate("MainWindow", "ToolBar"))
+        MainWindow.setWindowTitle(_translate("MainWindow", settings.WINDOW_TITLE))
+        self.toolBar.setWindowTitle(_translate("MainWindow", settings.TOOLBAR_TITLE))
     
     # ToolBar
     def selectPath(self):
@@ -323,8 +312,8 @@ class Root:
 
         # Create new or load project
         if self.project.path != '': 
-            if not utils.isProject(self.project.path):
-                utils.mkNewProject(self.project.path)
+            if not Project.isProject(self.project.path):
+                Project.mkNewProject(self.project.path)
                 self.toolBar.update()
             self.toolBar.setFolderIconToNormal()
 
@@ -365,7 +354,7 @@ class Root:
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")
+    app.setStyle(settings.appStyle)
     MainWindow = QtWidgets.QMainWindow()
     ui = Root(MainWindow)
     MainWindow.show()
