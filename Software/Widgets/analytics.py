@@ -1,8 +1,9 @@
 from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
+from Config import settings
 
 class Analytics(QtWidgets.QWidget):
-    WIDTH = 720
-    HEIGHT = 420
+    WIDTH = settings.ANLYTCS_WIDTH
+    HEIGHT = settings.ANLYTCS_HEIGHT
 
     def __init__(self):
         super().__init__()
@@ -91,7 +92,7 @@ class Analytics(QtWidgets.QWidget):
         self.chart.setBackgroundRoundness(0)
 
         self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)
-        print(self.chart.legend())
+        self.chart.legend().setFont(QtGui.QFont("Poppins Medium", pointSize=8, weight=60))
         
 
         self._chart_view = QtChart.QChartView(self.chart)
