@@ -47,7 +47,7 @@ class Analytics(QtWidgets.QWidget):
         subTotalLayout.setContentsMargins(10, 0, 10, 0)
         subTotalFont = QtGui.QFont("Poppins Medium", pointSize=8, weight=60)
 
-        blackSigatokaTotalLabel = QtWidgets.QLabel('Black Sigatoka')
+        blackSigatokaTotalLabel = QtWidgets.QLabel(settings.b_sigatoka)
         blackSigatokaTotalLabel.setFont(subTotalFont)
         subTotalLayout.addWidget(blackSigatokaTotalLabel, 0, 0, 1, 1)
 
@@ -56,7 +56,7 @@ class Analytics(QtWidgets.QWidget):
         self.blackSigatokaTotalConfidence.setFont(subTotalFont)
         subTotalLayout.addWidget(self.blackSigatokaTotalConfidence, 0, 1, 1, 3)
 
-        yellowSigatokaTotalLabel = QtWidgets.QLabel('Yellow Sigatoka')
+        yellowSigatokaTotalLabel = QtWidgets.QLabel(settings.y_sigatoka)
         yellowSigatokaTotalLabel.setFont(subTotalFont)
         subTotalLayout.addWidget(yellowSigatokaTotalLabel, 1, 0, 1, 1)
 
@@ -167,10 +167,8 @@ class ImagesResultTable(QtWidgets.QTableWidget):
 
         self.setAutoScroll(True)
         self.setAlternatingRowColors(True)
-        self.setObjectName("table")
         self.setColumnCount(len(self.COLUMNS))
         self.setRowCount(0)
-
         self.setupColumns()
 
 
