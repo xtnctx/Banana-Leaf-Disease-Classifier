@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from . import objTypes
+from Config import settings
 import json
 import datetime
 import os
@@ -20,11 +20,11 @@ class Project:
         self._path = prefs["Project Path"]
 
     @property
-    def path(self) -> objTypes.strPath:
+    def path(self) -> str:
         return self._path
 
     @path.setter
-    def path(self, dir:objTypes.strPath) -> None:
+    def path(self, dir:str) -> None:
         with open("./user-preferences.json", "r+") as outfile:
             prefs = json.load(outfile)
             prefs["Project Path"] = dir
@@ -34,10 +34,10 @@ class Project:
         self._path = dir
 
     @staticmethod
-    def mkNewProject(path:objTypes.strPath) -> None:
+    def mkNewProject(path:str) -> None:
         ''' Initialize new project (create Folders & analytics) '''
-        os.makedirs(f'{path}/Black Sigatoka', exist_ok=True)
-        os.makedirs(f'{path}/Yellow Sigatoka', exist_ok=True)
+        os.makedirs(f'{path}/{settings.b_sigatoka}', exist_ok=True)
+        os.makedirs(f'{path}/{settings.y_sigatoka}', exist_ok=True)
 
         current_time = datetime.datetime.now()
         data = {
@@ -50,7 +50,7 @@ class Project:
             outfile.write(json_object)
 
     @staticmethod
-    def isProject(path:objTypes.strPath) -> bool:
+    def isProject(path:str) -> bool:
         ''' Check if selected path is a subtype of this project '''
         try:
             with open(f'{path}/analytics.json', 'r') as openfile:
