@@ -9,6 +9,8 @@ import sys
 import cv2
 import os
 
+from pyqt_custom_titlebar_setter import CustomTitlebarSetter
+
 
 class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
@@ -270,7 +272,6 @@ class Root:
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
         self.MainWindow.setCentralWidget(self.centralwidget)
-
         
         # ToolBar
         self.toolBar = ToolBar(self.MainWindow)
