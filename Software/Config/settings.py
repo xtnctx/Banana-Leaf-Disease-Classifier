@@ -1,6 +1,5 @@
 from PyQt5 import QtCore
 from Utils.utils import AppStyle
-from Utils import objTypes
 
 #                    W I N D O W                    #
 # Main window size
@@ -12,23 +11,20 @@ ANLYTCS_WIDTH = 720
 ANLYTCS_HEIGHT = 420
 
 # Window and toolbar title name
-WINDOW_TITLE = 'SimbiApp'
+WINDOW_TITLE = 'SimbiSU'
 TOOLBAR_TITLE = 'ToolBar'
 
 # Styles:
 #   windows
 #   fusion
-#   macintosh
+#   windowsvista
 appStyle = AppStyle.fusion
 
 
 #                    C A M E R A                    #
 # Classification names and path
-b_sigatoka:objTypes.strName = 'Black Sigatoka'
-y_sigatoka:objTypes.strName = 'Yellow Sigatoka'
-
-b_sigatokaP:objTypes.strPath = f'/{b_sigatoka}'
-y_sigatokaP:objTypes.strPath = f'/{y_sigatoka}'
+b_sigatoka = 'Black Sigatoka'
+y_sigatoka = 'Yellow Sigatoka'
 
 # Camera image size
 camera_scale = (
@@ -41,3 +37,10 @@ camera_scale = (
 imageName = 'capture'
 f_extension = '.jpg'
 
+
+
+
+#>_>_>_>_>_>_>_>_>_>_>_>_DEV: P R O J E C T  F I L E>_>_>_>_>_>_>_>_>_>_>_>_#
+class Dev:
+    pref_file = 'user-preferences.json'
+    anlytcs_file = 'analytics.json'
