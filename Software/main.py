@@ -9,8 +9,8 @@ import sys
 import cv2
 import os
 
-from pyqt_custom_titlebar_setter import CustomTitlebarSetter
-
+import tensorflow as tf
+import numpy as np
 
 class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
@@ -22,6 +22,9 @@ class Recorder(QtCore.QThread):
     # OpenCV capture device
     selectedCameraIndex = 0
     cap = cv2.VideoCapture(selectedCameraIndex)
+
+    # Tensorflow model
+    loaded_model =  tf.keras.models.load_model('./models/keras_model.h5')
 
     def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
@@ -73,6 +76,22 @@ class Recorder(QtCore.QThread):
         ### !!!!!!!!!
         # TODO: make prediction then save to a specified folder
     
+    def classify(self):
+        img = tf.keras.utils.load_img('./testImages/yellowsigatokatest.jpg', target_size=settings.IMAGE_SIZE) # replace with your file name here
+        img_array = tf.keras.utils.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0) # create a batch
+
+        yhat = self.loaded_model.predict(img_array)
+        score = tf.nn.softmax(yhat[0])
+
+        print(score)
+
+        print(
+            "This image most likely belongs to {} with a {:.2f} percent confidence."
+            .format(settings.class_names[np.argmax(score)], 100 * np.max(score))
+        )
+
+
     def onCamSelectedIndex(self, index):
         self.selectedCameraIndex = index
         self.pauseValue = True
@@ -237,7 +256,8 @@ class UI(QtWidgets.QWidget):
             self.recorder.start()
     
     def capture(self):
-        self.recorder.doCapture.emit(True)
+        # self.recorder.doCapture.emit(True)
+        self.recorder.classify()
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def setImage(self, image):
@@ -297,6 +317,8 @@ class Root:
 
         self.retranslateUi(self.MainWindow)
         QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
+
+        self.ui.camera_group_box.setEnabled(True)
 
     def retranslateUi(self, MainWindow: QtWidgets.QMainWindow):
         _translate = QtCore.QCoreApplication.translate
