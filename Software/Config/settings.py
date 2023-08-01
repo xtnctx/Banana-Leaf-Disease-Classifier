@@ -22,16 +22,20 @@ appStyle = AppStyle.fusion
 
 
 #                    C A M E R A                    #
-# Classification names and path
+# Classification names
 b_sigatoka = 'Black Sigatoka'
 y_sigatoka = 'Yellow Sigatoka'
+class_names = [b_sigatoka, y_sigatoka] # alphabetical order
 
-# Camera image size
+# Camera<Stream> image size
 camera_scale = (
     640, # width
     480, # height
     QtCore.Qt.KeepAspectRatio # aspect ratio mode
 )
+
+# IMAGE_SIZE = (256, 256, 3) # from tensor model
+IMAGE_SIZE = (224, 224, 3) # from tensor model
 
 # Output file name
 imageName = 'capture'
