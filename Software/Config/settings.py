@@ -34,8 +34,10 @@ camera_scale = (
     QtCore.Qt.KeepAspectRatio # aspect ratio mode
 )
 
-# IMAGE_SIZE = (256, 256, 3) # from tensor model
-IMAGE_SIZE = (224, 224, 3) # from tensor model
+# IMAGE_SIZE = (256, 256) # from tensor model
+# IMAGE_SHAPE = (256, 256, 3)
+IMAGE_SIZE = (224, 224) # from tensor model
+IMAGE_SHAPE = (224, 224, 3)
 
 # Output file name
 imageName = 'capture'
