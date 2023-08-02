@@ -22,6 +22,7 @@ class Recorder(QtCore.QThread):
     # OpenCV capture device
     selectedCameraIndex = 0
     cap = cv2.VideoCapture(selectedCameraIndex)
+    isOpened = cap.isOpened()
 
     # Tensorflow model
     loaded_model =  tf.keras.models.load_model('./models/keras_model.h5')
@@ -76,9 +77,10 @@ class Recorder(QtCore.QThread):
         ### !!!!!!!!!
         # TODO: make prediction then save to a specified folder
     
-    def classify(self):
-        img = tf.keras.utils.load_img('./testImages/yellowsigatokatest.jpg', target_size=settings.IMAGE_SIZE) # replace with your file name here
-        img_array = tf.keras.utils.img_to_array(img)
+    def classify(self, img_array):
+        # img = tf.keras.utils.load_img('./testImages/yellowsigatokatest.jpg', target_size=settings.IMAGE_SIZE) # replace with your file name here
+        # img_array = tf.keras.utils.img_to_array(img)
+        print(img_array.shape)
         img_array = tf.expand_dims(img_array, 0) # create a batch
 
         yhat = self.loaded_model.predict(img_array)
@@ -99,7 +101,7 @@ class Recorder(QtCore.QThread):
         self.pauseValue = False
  
     def run(self):
-        while True:
+        while self.isOpened:
             ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
 
@@ -125,9 +127,22 @@ class Recorder(QtCore.QThread):
 
                 # Save current frame
                 if self.doCaptureValue:
-                    # TODO: saveImage to a its folder after classifying 
+                    # Classify resized image based on model's input_shape
+                    img2predict = cv2.cvtColor(
+                        cv2.resize(
+                            src = resized_cropped,
+                            dsize = settings.IMAGE_SIZE,
+                            interpolation = cv2.INTER_AREA
+                        ),
+                        cv2.COLOR_BGR2RGB
+                    )
+                    self.classify(img2predict)
+
+                    # Save original image
                     self.saveImage(f'{self.selectedPath}', cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
                     self.doCaptureValue = False
+        print('Closing...........')
+        self.cap.release()
         
 
 class UI(QtWidgets.QWidget):
@@ -256,8 +271,8 @@ class UI(QtWidgets.QWidget):
             self.recorder.start()
     
     def capture(self):
-        # self.recorder.doCapture.emit(True)
-        self.recorder.classify()
+        self.recorder.doCapture.emit(True)
+        # self.recorder.classify()
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def setImage(self, image):
@@ -274,7 +289,7 @@ class UI(QtWidgets.QWidget):
         self.second_ui = PreviewImage(image)
     
 
-class Root:
+class Root(QtWidgets.QMainWindow):
     WINDOW_WIDTH = settings.WINDOW_WIDTH
     WINDOW_HEIGHT = settings.WINDOW_HEIGHT
 
@@ -283,46 +298,46 @@ class Root:
     selectedPath = ''
     availableCameras = {}
 
-    def __init__(self, MainWindow: QtWidgets.QMainWindow) -> None:
+    def __init__(self) -> None:
+        super().__init__()
         hasFolderSelected = True
 
-        self.MainWindow = MainWindow
-        self.centralwidget = QtWidgets.QWidget(self.MainWindow)
+        self.centralwidget = QtWidgets.QWidget(self)
         self.mainLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
-        self.MainWindow.setCentralWidget(self.centralwidget)
+        self.setCentralWidget(self.centralwidget)
         
         # ToolBar
-        self.toolBar = ToolBar(self.MainWindow)
+        self.toolBar = ToolBar(self)
         if self.project.path == "":
             self.toolBar.askFolderIcon()
             hasFolderSelected = False
         self.toolBar.actionFolder.triggered.connect(self.selectPath)
         self.toolBar.actionAnalytics.triggered.connect(self.showAnalytics)
         self.toolBar.actionCamera.triggered.connect(self.selectCamera)
-        self.MainWindow.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
+        self.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-        self.ui = UI(parent=self.MainWindow, selectedPath=self.project.path, hasFolderSelected=hasFolderSelected)
+        self.ui = UI(parent=self, selectedPath=self.project.path, hasFolderSelected=hasFolderSelected)
         if not hasFolderSelected:
             self.ui.camera_group_box.setDisabled(True)
         self.mainLayout.addWidget(self.ui)
 
         # Center the main window
-        self.MainWindow.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
-        qr = self.MainWindow.frameGeometry()
+        self.resize(self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        qr = self.frameGeometry()
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
-        self.MainWindow.move(qr.topLeft())
+        self.move(qr.topLeft())
 
-        self.retranslateUi(self.MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
 
         self.ui.camera_group_box.setEnabled(True)
 
-    def retranslateUi(self, MainWindow: QtWidgets.QMainWindow):
+    def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", settings.WINDOW_TITLE))
+        self.setWindowTitle(_translate("MainWindow", settings.WINDOW_TITLE))
         self.toolBar.setWindowTitle(_translate("MainWindow", settings.TOOLBAR_TITLE))
     
     # ToolBar
@@ -331,7 +346,7 @@ class Root:
         self.ui.recorder.pause.emit(True)
 
         self.project.path = str(QtWidgets.QFileDialog.getExistingDirectory(QtWidgets.QWidget(), "Select Directory"))
-        self.MainWindow.setWindowTitle(self.project.path)
+        self.setWindowTitle(self.project.path)
 
         # Create new or load project
         if self.project.path != '': 
@@ -373,14 +388,19 @@ class Root:
             self.camOption.camUsed.connect(self.ui.recorder.onCamSelectedIndex)
             self.ui.recorder.pause.emit(False)
             self.camOption.show()
+    
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.ui.recorder.isOpened = False
+        self.ui.recorder.quit()
+        cv2.destroyAllWindows()
+        return super().closeEvent(event)
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle(settings.appStyle)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Root(MainWindow)
-    MainWindow.show()
+    root = Root()
+    root.show()
     sys.exit(app.exec_())
 	
 if __name__ == '__main__':
