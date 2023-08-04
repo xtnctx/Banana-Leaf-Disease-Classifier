@@ -7,8 +7,8 @@ WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 600
 
 # Analytics window size
-ANLYTCS_WIDTH = 720
-ANLYTCS_HEIGHT = 420
+ANALYTICS_WIDTH = 720
+ANALYTICS_HEIGHT = 420
 
 # Window and toolbar title name
 WINDOW_TITLE = 'SimbiSU'
@@ -49,4 +49,4 @@ f_extension = '.jpg'
 #>_>_>_>_>_>_>_>_>_>_>_>_DEV: P R O J E C T  F I L E>_>_>_>_>_>_>_>_>_>_>_>_#
 class Dev:
     pref_file = 'user-preferences.json'
-    anlytcs_file = 'analytics.json'
+    analytics_file = 'analytics.json'
