@@ -2,8 +2,8 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from Widgets.toolBar import ToolBar
 from Widgets.imagePreview import ImagePreviewWidget, PreviewImage
 from Widgets.camOpts import CamOptions
-from Widgets.analytics import Analytics
-from Utils.utils import Project
+from Widgets.analytics import AnalyticsWindow
+from Utils.utils import Project, Analytics, Image
 from Config import settings
 import sys
 import cv2
@@ -12,12 +12,14 @@ import os
 import tensorflow as tf
 import numpy as np
 
+
 class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
     scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
     pause = QtCore.pyqtSignal(bool)
     projectPath = QtCore.pyqtSignal(str)
+    on_classify = QtCore.pyqtSignal(bool)
 
     # OpenCV capture device
     selectedCameraIndex = 0
@@ -26,6 +28,10 @@ class Recorder(QtCore.QThread):
 
     # Tensorflow model
     loaded_model =  tf.keras.models.load_model('./models/keras_model.h5')
+
+    # Latest output
+    image:Image = None
+    image_path = ''
 
     def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
@@ -66,33 +72,46 @@ class Recorder(QtCore.QThread):
         
         # Generate new file name
         fileNextCount = len(os.listdir(imagePath)) + 1
-        newFile = f'{imagePath}/{imageName+str(fileNextCount)+f_extension}'
+        self.image_path = f'{imagePath}/{imageName+str(fileNextCount)+f_extension}'
         
         # Create a file
-        if os.path.exists(newFile):
+        if os.path.exists(self.image_path):
             print("image already exist.")
             return
-        cv2.imwrite(newFile, image)
+        cv2.imwrite(self.image_path, image)
 
         ### !!!!!!!!!
         # TODO: make prediction then save to a specified folder
     
-    def classify(self, img_array):
+    def classify(self, img_array:np.ndarray):
         # img = tf.keras.utils.load_img('./testImages/yellowsigatokatest.jpg', target_size=settings.IMAGE_SIZE) # replace with your file name here
         # img_array = tf.keras.utils.img_to_array(img)
-        print(img_array.shape)
-        img_array = tf.expand_dims(img_array, 0) # create a batch
+        print(img_array)
+        img_array_batch = tf.expand_dims(img_array, 0) # create a batch
 
-        yhat = self.loaded_model.predict(img_array)
+        yhat = self.loaded_model.predict(img_array_batch)
         score = tf.nn.softmax(yhat[0])
 
-        print(score)
+        print(yhat)
 
         print(
             "This image most likely belongs to {} with a {:.2f} percent confidence."
             .format(settings.class_names[np.argmax(score)], 100 * np.max(score))
         )
 
+        today = Analytics.get_clock()
+        self.image = Image(
+            id = Analytics.create_new_id(),
+            path = self.image_path,
+            classification = settings.class_names[np.argmax(score)],
+            confidence = float(np.max(score)),
+            shape = img_array.shape,
+            type = settings.f_extension,
+            created = today,
+            modified = today
+        )
+
+        self.on_classify.emit(True)
 
     def onCamSelectedIndex(self, index):
         self.selectedCameraIndex = index
@@ -128,27 +147,37 @@ class Recorder(QtCore.QThread):
                 # Save current frame
                 if self.doCaptureValue:
                     # Classify resized image based on model's input_shape
-                    img2predict = cv2.cvtColor(
+                    img_array = cv2.cvtColor(
                         cv2.resize(
                             src = resized_cropped,
                             dsize = settings.IMAGE_SIZE,
                             interpolation = cv2.INTER_AREA
                         ),
                         cv2.COLOR_BGR2RGB
-                    )
-                    self.classify(img2predict)
+                    ).astype(np.float32)
+                    self.classify(img_array)
 
                     # Save original image
                     self.saveImage(f'{self.selectedPath}', cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
+                    
                     self.doCaptureValue = False
+                    
         print('Closing...........')
         self.cap.release()
         
 
 class UI(QtWidgets.QWidget):
+    analytics:Analytics = None
+
+    def on_classify_emitted(self, value):
+        self.analytics.add_image(image=self.recorder.image)
+        self.on_classify_value = value
+
     def __init__(self, parent=None, selectedPath:str='', hasFolderSelected=False):
         super(UI, self).__init__()
         cameras = CamOptions.get_available_cameras()
+
+        self.on_classify_value = False
 	
         hbox = QtWidgets.QHBoxLayout(self)
         hbox.setContentsMargins(5, 5, 5, 5)
@@ -265,6 +294,7 @@ class UI(QtWidgets.QWidget):
 
         # Start camera
         self.recorder = Recorder(parent=parent, selectedPath=selectedPath)
+        self.recorder.on_classify.connect(self.on_classify_emitted)
         self.recorder.changePixmap.connect(self.setImage)
         if len(cameras) > 0 and hasFolderSelected:
             self.camera_group_box.setEnabled(True)
@@ -272,7 +302,6 @@ class UI(QtWidgets.QWidget):
     
     def capture(self):
         self.recorder.doCapture.emit(True)
-        # self.recorder.classify()
 
     @QtCore.pyqtSlot(QtGui.QImage)
     def setImage(self, image):
@@ -302,6 +331,8 @@ class Root(QtWidgets.QMainWindow):
         super().__init__()
         hasFolderSelected = True
 
+        self.analytics = Analytics(path=self.project.path)
+
         self.centralwidget = QtWidgets.QWidget(self)
         self.mainLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
@@ -318,7 +349,13 @@ class Root(QtWidgets.QMainWindow):
         self.toolBar.actionCamera.triggered.connect(self.selectCamera)
         self.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolBar)
         
-        self.ui = UI(parent=self, selectedPath=self.project.path, hasFolderSelected=hasFolderSelected)
+        self.ui = UI(
+            parent = self,
+            selectedPath = self.project.path,
+            hasFolderSelected = hasFolderSelected
+        )
+        self.ui.analytics = self.analytics
+
         if not hasFolderSelected:
             self.ui.camera_group_box.setDisabled(True)
         self.mainLayout.addWidget(self.ui)
@@ -350,8 +387,9 @@ class Root(QtWidgets.QMainWindow):
 
         # Create new or load project
         if self.project.path != '': 
-            if not Project.isProject(self.project.path):
+            if not Project.is_project(self.project.path):
                 Project.mkNewProject(self.project.path)
+                self.analytics.path = self.project.path
                 self.toolBar.update()
             self.toolBar.setFolderIconToNormal()
 
@@ -368,7 +406,7 @@ class Root(QtWidgets.QMainWindow):
     
     def showAnalytics(self):
         ''' Analytics'''
-        self.analyticsWidget = Analytics()
+        self.analyticsWidget = AnalyticsWindow()
         self.analyticsWidget.show()
     
     def selectCamera(self):
