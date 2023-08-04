@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
 from Config import settings
 
-class Analytics(QtWidgets.QWidget):
-    WIDTH = settings.ANLYTCS_WIDTH
-    HEIGHT = settings.ANLYTCS_HEIGHT
+class AnalyticsWindow(QtWidgets.QWidget):
+    WIDTH = settings.ANALYTICS_WIDTH
+    HEIGHT = settings.ANALYTICS_HEIGHT
 
     def __init__(self):
         super().__init__()
