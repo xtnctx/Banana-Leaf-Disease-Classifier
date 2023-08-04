@@ -1,9 +1,11 @@
 from PyQt5 import QtWidgets
 from Config import settings
+from dataclasses import dataclass
 import json
 import datetime
 import os
 import pathlib
+import uuid
 
 
 class Project:
@@ -15,7 +17,7 @@ class Project:
         return pathlib.Path(self._path).name
 
     def _readPreferences(self) -> None:
-        with open('./user-preferences.json', 'r') as openfile:
+        with open(f'./{settings.Dev.pref_file}', 'r') as openfile:
             prefs:dict = json.load(openfile)
         self._path = prefs["Project Path"]
 
@@ -25,7 +27,7 @@ class Project:
 
     @path.setter
     def path(self, dir:str) -> None:
-        with open("./user-preferences.json", "r+") as outfile:
+        with open(f'./{settings.Dev.pref_file}', 'r+') as outfile:
             prefs:dict = json.load(outfile)
             prefs["Project Path"] = dir
             outfile.seek(0)
@@ -38,31 +40,34 @@ class Project:
         ''' Initialize new project (create Folders & analytics) '''
         os.makedirs(f'{path}/{settings.b_sigatoka}', exist_ok=True)
         os.makedirs(f'{path}/{settings.y_sigatoka}', exist_ok=True)
-
-        current_time = datetime.datetime.now()
-        data = {
-            "created": f'{current_time.month} {current_time.day}, {current_time.year}',
-            "isProject": True
-        }
-        json_object = json.dumps(data, indent=4)
-
-        with open(f'{path}/analytics.json', "w") as outfile:
-            outfile.write(json_object)
+        Analytics.create_file(path)
 
     @staticmethod
-    def isProject(path:str) -> bool:
+    def is_project(path:str) -> bool:
         ''' Check if selected path is a subtype of this project '''
         try:
-            with open(f'{path}/analytics.json', 'r') as openfile:
+            with open(f'{path}/{settings.Dev.analytics_file}', 'r') as openfile:
                 analytics:dict = json.load(openfile)
 
-            if analytics.get('isProject') is not None:
-                return analytics['isProject']
+            if analytics.get('is_project') is not None:
+                return analytics['is_project']
 
         except (Exception, FileNotFoundError):
             return False
 
 
+@dataclass
+class Image:
+    id:str
+    path:str
+    classification:str
+    confidence:float
+    shape:tuple
+    type:str
+    created:str
+    modified:str
+
+    
 class Analytics:
     '''
         :attr data: {
@@ -71,9 +76,8 @@ class Analytics:
             created:                        datetime (Weekday, mm/dd/yy - time)\n
             modified:                       datetime (Weekday, mm/dd/yy - time)\n
             images: [
-                {
-                    id:                     type=int\n
-                    datetime:               datetime (Weekday, mm/dd/yy - time) = type=str\n
+                @Image {
+                    id:                     type=str\n
                     path:                   directory of image - type=str\n
                     classification:         black or yellow sigatoka = type=str\n
                     confidence:             prediction confidence level - type=float\n
@@ -96,42 +100,88 @@ class Analytics:
             }\n\n
 
             image_count:                    type=int\n
-            total_confidence:               type=float\n
+            overall_confidence:               type=float\n
+            is_project:                     True\n
         }
     '''
     data = {'title': 'Analytics'}
+    path = ''
 
-    def __init__(self) -> None:
-        with open('./analytics.json', 'r') as f:
-            self.data:dict = json.load(f)
+    def __init__(self, path='') -> None:
+        if path != '':
+            self.path = path
+            with open(f'{self.path}/{settings.Dev.analytics_file}', 'r') as f:
+                self.data:dict = json.load(f)
 
-    def add(self, data:dict) -> None:
-        current_time = datetime.datetime.now()
+    @staticmethod
+    def create_file(path:str) -> None:
+        today = Analytics.get_clock()
+        data = {
+            'user': Analytics.user(),
+            'title': 'Analytics',
+            'created': today,
+            'modified': today,
+            'images': [],
+            'black_sigatoka': {},
+            'yellow_sigatoka': {},
+            'image_count': 0,
+            'overall_confidence': 0.0,
+            'is_project': True
+        }
 
-        with open('./analytics.json', "r+") as outfile:
-            d:dict = json.load(outfile)
+        json_object = json.dumps(data, indent=4)
+        with open(f'{path}/{settings.Dev.analytics_file}', "w") as outfile:
+            outfile.write(json_object)
 
-            d['user'] = self.user()
-            d['title'] = 'Analytics'
-            d['created'] = current_time.strftime(f'%A, %B %d, %Y, %-I:%M:%S %p')
+    def add_image(self, image:Image) -> None:
+        with open(f'{self.path}/{settings.Dev.analytics_file}', "r+") as outfile:
+            file_data:dict = json.load(outfile)
 
-            images:list[dict] = d['images']
-            images.append(data['new_image'])
-            d['images'] = images
+            file_data['user'] = self.user()
+            file_data['modified'] = Analytics.get_clock()
+            file_data['images'].append(image.__dict__)
+
+            black_sigatoka_images = self.groupImages(obj=file_data['images'], cls=settings.b_sigatoka)
+            file_data['black_sigatoka']['count'] = len(black_sigatoka_images)
+            file_data['black_sigatoka']['total_confidence'] = self.calculate_total_confidence(black_sigatoka_images)
+
+            yellow_sigatoka_images = self.groupImages(obj=file_data['images'], cls=settings.y_sigatoka)
+            file_data['yellow_sigatoka']['count'] = len(yellow_sigatoka_images)
+            file_data['yellow_sigatoka']['total_confidence'] = self.calculate_total_confidence(yellow_sigatoka_images)
+            
+            file_data['image_count'] = len(file_data['images'])
+            file_data['overall_confidence'] = self.calculate_total_confidence(file_data['images'])
 
             outfile.seek(0)
-            json.dump(d, outfile, indent=4)
+            json.dump(file_data, outfile, indent=4)
             outfile.truncate()
 
-        self.update()
+        self.data = file_data
+    
+    @staticmethod
+    def create_new_id() -> str:
+        return str(uuid.uuid4())
+    
+    @staticmethod
+    def get_clock() -> str:
+        return datetime.datetime.now().strftime(f'%A, %B %d, %Y, %#I:%M:%S %p')
+    
+    def groupImages(self, obj:dict, cls:str) -> list:
+        ''' :param c: from settings.class_names '''
+        if cls not in settings.class_names:
+            return []
+        return [c for c in obj if c.get('classification') == cls]
 
-    def update(self):
-        pass
-    
-    def create_new_id(self) -> int:
-        return max([i.get('id') for i in self.images()]) + 1
-    
-    
+    def calculate_total_confidence(self, group:list) -> float:
+        sum = 0.0
+        n_group = len(group)
+        if n_group != 0:
+            for obj in group:
+                sum += obj.get('confidence')
+            return sum / len(group)
+        return sum
+
+
     # Get data from analytics
     @staticmethod
     def user() -> str:
@@ -158,8 +208,9 @@ class Analytics:
     def image_count(self) -> int:
         return self.data['image_count']
 
-    def total_confidence(self) -> float:
-        return self.data['total_confidence']
+    def overall_confidence(self) -> float:
+        return self.data['overall_confidence']
+
 
 
 class AppStyle:
