@@ -6,6 +6,8 @@ from Widgets.ui import UI
 from Utils.utils import Project, Analytics
 from Config import settings
 import sys
+import os
+import time
 
 
 class Root(QtWidgets.QMainWindow):
@@ -115,8 +117,11 @@ class Root(QtWidgets.QMainWindow):
             self.camOption.camUsed.connect(self.ui.recorder.onCamSelectedIndex)
             self.ui.recorder.pause.emit(False)
             self.camOption.show()
-
-
+    
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.ui.recorder.isOpened = False
+        print('Closing ...')
+        time.sleep(2)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
