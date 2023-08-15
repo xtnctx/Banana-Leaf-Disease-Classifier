@@ -11,15 +11,28 @@ import uuid
 class Project:
     def __init__(self) -> None:
           self._path = ''
-          self._readPreferences()
+          self.brightness = 0
+          self.contrast = 0
+          self.zoom = 0
+          self.isDefisheye = False
+          self.isGrabCut = False
+          self._loadPreferences()
     
     def __repr__(self) -> str:
         return pathlib.Path(self._path).name
 
-    def _readPreferences(self) -> None:
+    def _loadPreferences(self) -> None:
         with open(f'./{settings.Dev.pref_file}', 'r') as openfile:
             prefs:dict = json.load(openfile)
+        self.update_project_prefs(prefs)
+    
+    def update_project_prefs(self, prefs):
         self._path = prefs["Project Path"]
+        self.brightness = prefs["brightness"]
+        self.contrast = prefs["contrast"]
+        self.zoom = prefs["zoom"]
+        self.isDefisheye = prefs["isDefisheye"]
+        self.isGrabCut = prefs["isGrabCut"]
 
     @property
     def path(self) -> str:
@@ -34,6 +47,19 @@ class Project:
             json.dump(prefs, outfile, indent=4)
             outfile.truncate()
         self._path = dir
+    
+    def save_controls(self, brightness:int, contrast:int, zoom:int, isDefisheye:bool, isGrabCut:bool):
+        with open(f'./{settings.Dev.pref_file}', 'r+') as outfile:
+            prefs:dict = json.load(outfile)
+            prefs["brightness"] = brightness
+            prefs["contrast"] = contrast
+            prefs["zoom"] = zoom
+            prefs["isDefisheye"] = isDefisheye
+            prefs["isGrabCut"] = isGrabCut
+            outfile.seek(0)
+            json.dump(prefs, outfile, indent=4)
+            outfile.truncate()
+        self.update_project_prefs(prefs)
 
     @staticmethod
     def mkNewProject(path:str) -> None:
