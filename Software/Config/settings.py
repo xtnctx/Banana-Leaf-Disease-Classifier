@@ -3,8 +3,8 @@ from Utils.utils import AppStyle
 
 #                    W I N D O W                    #
 # Main window size
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 1026
+WINDOW_HEIGHT = 608
 
 # Analytics window size
 ANALYTICS_WIDTH = 720
