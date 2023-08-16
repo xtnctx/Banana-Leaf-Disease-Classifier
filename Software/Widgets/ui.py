@@ -39,11 +39,11 @@ class UI(QtWidgets.QWidget):
         initialWidth = 350
         initialHeight = 200
         self.resizableRect = ResizableRect(
-            x = settings.camera_scale[0]/2,
-            y = settings.camera_scale[1]/2,
+            x = (settings.camera_scale[0] - initialWidth) / 2,
+            y = (settings.camera_scale[1] - initialHeight) / 2,
             width = initialWidth,
             height = initialHeight,
-            onCenter = True
+            onCenter = False
         )
 
         if not(len(cameras) > 0 and hasFolderSelected):
@@ -173,7 +173,7 @@ class UI(QtWidgets.QWidget):
         self.setLayout(hbox)
 
         # Start camera
-        self.recorder = Recorder(parent=parent, selectedPath=self.parent.project.path)
+        self.recorder = Recorder(parent=self, selectedPath=self.parent.project.path)
         self.recorder.on_classify.connect(self.on_classify_emitted)
         self.recorder.changePixmap.connect(self.setImage)
         if len(cameras) > 0 and hasFolderSelected:
