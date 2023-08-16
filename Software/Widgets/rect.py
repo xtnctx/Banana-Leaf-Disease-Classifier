@@ -19,11 +19,16 @@ class ResizableRect(QtWidgets.QGraphicsRectItem):
         # update the value within an itemChange() override that checks for
         # ItemPositionHasChanged changes.
         self.posItem = QtWidgets.QGraphicsSimpleTextItem(
-            '{}, {}'.format(self.x(), self.y()), parent=self)
+            '{}, {}, {}, {}'.format(*self.getRect()), 
+            parent=self
+        )
         self.posItem.setPos(
             self.boundingRect().x(), 
             self.boundingRect().y() - self.posItem.boundingRect().height()
         )
+    
+    def getRect(self):
+        return (self.x(), self.y(), self.rect().width(), self.rect().height())
 
     def getEdges(self, pos):
         # return a proper Qt.Edges flag that reflects the possible edge(s) at
@@ -117,8 +122,7 @@ class ResizableRect(QtWidgets.QGraphicsRectItem):
             # use the default implementation for ItemIsMovable
             super().mouseMoveEvent(event)
 
-        self.posItem.setText('{},{} ({})'.format(
-            self.x(), self.y(), self.rect().getRect()))
+        self.posItem.setText('{},{},{}, {}'.format(*self.getRect()))
         self.posItem.setPos(
             self.boundingRect().x(), 
             self.boundingRect().y() - self.posItem.boundingRect().height()
