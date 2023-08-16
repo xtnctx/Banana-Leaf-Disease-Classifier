@@ -6,7 +6,6 @@ from Widgets.ui import UI
 from Utils.utils import Project, Analytics
 from Config import settings
 import sys
-import os
 import time
 
 
