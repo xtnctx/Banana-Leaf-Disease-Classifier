@@ -30,7 +30,7 @@ class Recorder(QtCore.QThread):
 
     def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
-        print(selectedPath)
+        self.parent = parent
 
         self.scaleValue = 1
         self.scale.connect(self.scaleChanged)
@@ -114,6 +114,7 @@ class Recorder(QtCore.QThread):
  
     def run(self):
         while self.isOpened:
+            # print(self.parent.resizableRect.getRect())
             ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
 
