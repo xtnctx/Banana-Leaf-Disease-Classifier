@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 class ImagePreviewWidget(QtWidgets.QLabel):
     clicked= QtCore.pyqtSignal()
+    imagePath = ''
 
     def __init__(self, imagePath:str='./Yanfei.jpg') -> None:
         super().__init__()
@@ -17,6 +18,7 @@ class ImagePreviewWidget(QtWidgets.QLabel):
                 transformMode=QtCore.Qt.SmoothTransformation
             )
         )
+        self.imagePath = imagePath
     
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         self.clicked.emit()
