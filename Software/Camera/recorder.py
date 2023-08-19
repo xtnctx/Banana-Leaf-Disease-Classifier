@@ -75,17 +75,18 @@ class Recorder(QtCore.QThread):
             return
         cv2.imwrite(self.image_path, image)
 
-    def classify(self, img_array:np.ndarray):
+    def classify(self, img_array:np.ndarray) -> list:
         ### !!!!!!!!!
         # TODO: make prediction then save to a specified folder
+        # Rebuild model
 
         img_array_batch = tf.expand_dims(img_array, 0) # create a batch
 
         yhat = self.loaded_model.predict(img_array_batch)
-        score = tf.nn.softmax(yhat[0])
+        score = tf.nn.softmax(yhat[0]) # use only when softmax included in model
 
         print(yhat)
-        print(score)
+        print(type(score))
 
         print(
             "This image most likely belongs to {} with a {:.2f} percent confidence."
@@ -105,6 +106,7 @@ class Recorder(QtCore.QThread):
         )
 
         self.on_classify.emit(True)
+        return score # Confidence
 
     def onCamSelectedIndex(self, index):
         self.selectedCameraIndex = index
@@ -149,10 +151,20 @@ class Recorder(QtCore.QThread):
                         ),
                         cv2.COLOR_BGR2RGB
                     ).astype(np.float32)
-                    self.classify(img_array)
+                    result = self.classify(img_array)
 
-                    # Save original image
-                    self.saveImage(f'{self.selectedPath}', cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB))
+                    classification = settings.class_names[np.argmax(result)]
+                    confidence = 100 * np.max(result)
+
+                    for cnames in settings.class_names:
+                        if cnames == classification:
+                            print(f'saving to {classification}')
+
+                            # Save original image
+                            self.saveImage(
+                                f'{self.selectedPath}/{cnames}',
+                                cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB)
+                            )
                     
                     self.doCaptureValue = False
         self.cap.release()
