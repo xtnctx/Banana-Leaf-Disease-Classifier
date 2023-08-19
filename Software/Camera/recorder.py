@@ -166,5 +166,14 @@ class Recorder(QtCore.QThread):
                                 cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB)
                             )
                     
+                    self.parent.recorder_results.emit(
+                        {
+                            'classification': classification,
+                            'confidence': confidence,
+                            'image_path': self.image_path
+                        }
+                    )
+                    
+                    
                     self.doCaptureValue = False
         self.cap.release()
