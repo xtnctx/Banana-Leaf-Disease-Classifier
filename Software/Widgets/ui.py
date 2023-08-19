@@ -9,10 +9,28 @@ from Config import settings
 
 class UI(QtWidgets.QWidget):
     analytics:Analytics = None
+    recorder_results = QtCore.pyqtSignal(dict)
+
+    def get_results(self, results):
+        classification = results['classification']
+        confidence = results['confidence']
+        image_path = results['image_path']
+
+        if classification == settings.b_sigatoka:
+            self.black_sigatoka_label.setText('{} ({:.2f})'.format(classification, confidence))
+            self.yellow_sigatoka_label.setText(settings.y_sigatoka)
+        elif classification == settings.y_sigatoka:
+            self.yellow_sigatoka_label.setText('{} ({:.2f})'.format(classification, confidence))
+            self.black_sigatoka_label.setText(settings.b_sigatoka)
+        
+        self.image_preview.updateImage(imagePath=image_path)
 
     def __init__(self, parent, hasFolderSelected=False):
         super(UI, self).__init__()
         cameras = CamOptions.get_available_cameras()
+
+        self.scaleValue = 1
+        self.recorder_results.connect(self.get_results)
 
         self.on_classify_value = False
         self.parent = parent
@@ -223,8 +241,7 @@ class UI(QtWidgets.QWidget):
         self.recorder.scale.emit(zoomValue)
 
     def previewClicked(self):
-        image = QtGui.QPixmap('./Yanfei.jpg')
-        self.second_ui = PreviewImage(image)
+        self.second_ui = PreviewImage(QtGui.QPixmap(self.image_preview.imagePath))
 
     def grabcut_bool(self, value):
         if value:
