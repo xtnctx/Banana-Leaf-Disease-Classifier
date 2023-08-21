@@ -153,14 +153,6 @@ class UI(QtWidgets.QWidget):
 
         camera_layout_box.addLayout(controlsLayout)
 
-        # grabcut_layout = QtWidgets.QHBoxLayout()
-        # grabcut_label = QtWidgets.QLabel("GrabCut")
-        # grabcut_label.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
-        # grabcut_layout.addWidget(grabcut_label)
-        
-        # camera_layout_box.addLayout(grabcut_layout)
-
-
         # Capture
         capture_button = QtWidgets.QPushButton("Capture")
         font.setPointSize(11)
