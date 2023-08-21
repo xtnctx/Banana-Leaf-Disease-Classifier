@@ -5,9 +5,25 @@ class AnalyticsWindow(QtWidgets.QWidget):
     WIDTH = settings.ANALYTICS_WIDTH
     HEIGHT = settings.ANALYTICS_HEIGHT
 
-    def __init__(self):
+    title = ''
+    created = ''
+    images = []
+    image_count = 0
+    blacksig = {}
+    yellowsig = {}
+    overall_confidence = 0.
+
+    def __init__(self, data:dict):
         super().__init__()
         vbox = QtWidgets.QVBoxLayout(self)
+
+        self.title = data['title']
+        self.created = data['created']
+        self.images = data['images']
+        self.image_count = data['image_count']
+        self.blacksig = data['black_sigatoka']
+        self.yellowsig = data['yellow_sigatoka']
+        self.overall_confidence = data['overall_confidence']
 
         # TITLE & DATE
         titleFrame = QtWidgets.QFrame()
@@ -15,11 +31,12 @@ class AnalyticsWindow(QtWidgets.QWidget):
         titleLayout.setSpacing(0)
         titleLayout.setContentsMargins(0, 0, 0, 0)
 
-        titleLabel = QtWidgets.QLabel('Analytics')
+        titleLabel = QtWidgets.QLabel(self.title)
         titleLabel.setFont(QtGui.QFont("Poppins", pointSize=12, weight=70))
         titleLayout.addWidget(titleLabel)
 
-        dateLabel = QtWidgets.QLabel('April 20, 2023')
+        dateLabel = QtWidgets.QLabel(', '.join(self.created.split(',')[1:3]))
+        dateLabel.setToolTip(self.created)
         dateLabel.setFont(QtGui.QFont("Poppins", pointSize=8, weight=60))
         titleLayout.addWidget(dateLabel)
 
@@ -37,7 +54,7 @@ class AnalyticsWindow(QtWidgets.QWidget):
         titleOverallLabel.setAlignment(QtCore.Qt.AlignCenter)
         titleOverallLayout.addWidget(titleOverallLabel)
 
-        self.overallConfidenceLabel = QtWidgets.QLabel('84.1%')
+        self.overallConfidenceLabel = QtWidgets.QLabel('{:.2f}%'.format(self.overall_confidence * 100))
         self.overallConfidenceLabel.setFont(QtGui.QFont("Poppins", pointSize=22, weight=75))
         self.overallConfidenceLabel.setAlignment(QtCore.Qt.AlignCenter)
         titleOverallLayout.addWidget(self.overallConfidenceLabel)
@@ -47,23 +64,24 @@ class AnalyticsWindow(QtWidgets.QWidget):
         subTotalLayout.setContentsMargins(10, 0, 10, 0)
         subTotalFont = QtGui.QFont("Poppins Medium", pointSize=8, weight=60)
 
-        blackSigatokaTotalLabel = QtWidgets.QLabel(settings.b_sigatoka)
-        blackSigatokaTotalLabel.setFont(subTotalFont)
-        subTotalLayout.addWidget(blackSigatokaTotalLabel, 0, 0, 1, 1)
-
-        self.blackSigatokaTotalConfidence = QtWidgets.QLabel('84.3%')
-        self.blackSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
-        self.blackSigatokaTotalConfidence.setFont(subTotalFont)
-        subTotalLayout.addWidget(self.blackSigatokaTotalConfidence, 0, 1, 1, 3)
-
         yellowSigatokaTotalLabel = QtWidgets.QLabel(settings.y_sigatoka)
         yellowSigatokaTotalLabel.setFont(subTotalFont)
-        subTotalLayout.addWidget(yellowSigatokaTotalLabel, 1, 0, 1, 1)
+        subTotalLayout.addWidget(yellowSigatokaTotalLabel, 0, 0, 1, 1)
 
-        self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('83.9%')
+        self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.yellowsig['total_confidence'] * 100))
         self.yellowSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
         self.yellowSigatokaTotalConfidence.setFont(subTotalFont)
-        subTotalLayout.addWidget(self.yellowSigatokaTotalConfidence, 1, 1, 1, 3)
+        subTotalLayout.addWidget(self.yellowSigatokaTotalConfidence, 0, 1, 1, 3)
+
+
+        blackSigatokaTotalLabel = QtWidgets.QLabel(settings.b_sigatoka)
+        blackSigatokaTotalLabel.setFont(subTotalFont)
+        subTotalLayout.addWidget(blackSigatokaTotalLabel, 1, 0, 1, 1)
+
+        self.blackSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.blacksig['total_confidence'] * 100))
+        self.blackSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
+        self.blackSigatokaTotalConfidence.setFont(subTotalFont)
+        subTotalLayout.addWidget(self.blackSigatokaTotalConfidence, 1, 1, 1, 3)
 
         topleftLayout.addLayout(titleOverallLayout)
         topleftLayout.addLayout(subTotalLayout)
@@ -78,8 +96,8 @@ class AnalyticsWindow(QtWidgets.QWidget):
         pieTitle.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=60))
 
         self.pieSeries = QtChart.QPieSeries()
-        self.pieSeries.append('Y', 10)
-        self.pieSeries.append('B', 20)
+        self.pieSeries.append('Y', self.yellowsig['count'])
+        self.pieSeries.append('B', self.blacksig['count'])
         self.pieSeries.setHoleSize(0.40)
         # pieSeries.setFont(QtGui.QFont("Poppins Medium", pointSize=7, weight=60))
 
@@ -119,7 +137,7 @@ class AnalyticsWindow(QtWidgets.QWidget):
         rightFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         rightFrameLayout = QtWidgets.QVBoxLayout(rightFrame)
 
-        self.table = ImagesResultTable()
+        self.table = ImagesResultTable(images=self.images)
         rightFrameLayout.addWidget(self.table)
 
 
@@ -137,6 +155,7 @@ class AnalyticsWindow(QtWidgets.QWidget):
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+    
 
 class AlignDelegate(QtWidgets.QStyledItemDelegate): # Table.cell.alignCenter 
     def initStyleOption(self, option, index):
@@ -148,8 +167,12 @@ class AlignDelegate(QtWidgets.QStyledItemDelegate): # Table.cell.alignCenter
 class ImagesResultTable(QtWidgets.QTableWidget):
     COLUMNS = ['Image', 'Classification', 'Confidence']
 
-    def __init__(self):
+    def __init__(self, images:list):
         super().__init__()
+
+        images:list[dict] = images
+
+        print(images)
 
         self.setGeometry(QtCore.QRect(10, 27, 432, 251))
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
