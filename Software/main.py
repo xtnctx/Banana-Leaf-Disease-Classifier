@@ -96,7 +96,7 @@ class Root(QtWidgets.QMainWindow):
     
     def showAnalytics(self):
         ''' Analytics'''
-        self.analyticsWidget = AnalyticsWindow()
+        self.analyticsWidget = AnalyticsWindow(data=self.analytics.data)
         self.analyticsWidget.show()
     
     def selectCamera(self):
