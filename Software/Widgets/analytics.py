@@ -68,7 +68,10 @@ class AnalyticsWindow(QtWidgets.QWidget):
         yellowSigatokaTotalLabel.setFont(subTotalFont)
         subTotalLayout.addWidget(yellowSigatokaTotalLabel, 0, 0, 1, 1)
 
-        self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.yellowsig['total_confidence'] * 100))
+        if self.yellowsig.get('total_confidence') == None:
+            self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('--')
+        else:
+            self.yellowSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.yellowsig['total_confidence'] * 100))
         self.yellowSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
         self.yellowSigatokaTotalConfidence.setFont(subTotalFont)
         subTotalLayout.addWidget(self.yellowSigatokaTotalConfidence, 0, 1, 1, 3)
@@ -78,7 +81,10 @@ class AnalyticsWindow(QtWidgets.QWidget):
         blackSigatokaTotalLabel.setFont(subTotalFont)
         subTotalLayout.addWidget(blackSigatokaTotalLabel, 1, 0, 1, 1)
 
-        self.blackSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.blacksig['total_confidence'] * 100))
+        if self.blacksig.get('total_confidence') == None:
+            self.blackSigatokaTotalConfidence = QtWidgets.QLabel('--')
+        else:
+            self.blackSigatokaTotalConfidence = QtWidgets.QLabel('{:.2f}%'.format(self.blacksig['total_confidence'] * 100))
         self.blackSigatokaTotalConfidence.setAlignment(QtCore.Qt.AlignCenter)
         self.blackSigatokaTotalConfidence.setFont(subTotalFont)
         subTotalLayout.addWidget(self.blackSigatokaTotalConfidence, 1, 1, 1, 3)
@@ -96,8 +102,15 @@ class AnalyticsWindow(QtWidgets.QWidget):
         pieTitle.setFont(QtGui.QFont("Poppins Medium", pointSize=10, weight=60))
 
         self.pieSeries = QtChart.QPieSeries()
-        self.pieSeries.append('Y', self.yellowsig['count'])
-        self.pieSeries.append('B', self.blacksig['count'])
+        if self.yellowsig.get('count') == None:
+            self.pieSeries.append('Y', 0)
+        else:
+            self.pieSeries.append('Y', self.yellowsig['count'])
+
+        if self.blacksig.get('count') == None:
+            self.pieSeries.append('B', 0)
+        else:
+            self.pieSeries.append('B', self.blacksig['count'])
         self.pieSeries.setHoleSize(0.40)
         # pieSeries.setFont(QtGui.QFont("Poppins Medium", pointSize=7, weight=60))
 
@@ -166,13 +179,13 @@ class AlignDelegate(QtWidgets.QStyledItemDelegate): # Table.cell.alignCenter
 
 class ImagesResultTable(QtWidgets.QTableWidget):
     COLUMNS = ['Image', 'Classification', 'Confidence']
+    selected_item = () # row, column
 
     def __init__(self, images:list):
         super().__init__()
 
+        # keys: ['id', 'path', 'classification', 'confidence', 'shape', 'type', 'created', 'modified']
         images:list[dict] = images
-
-        print(images)
 
         self.setGeometry(QtCore.QRect(10, 27, 432, 251))
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -186,14 +199,40 @@ class ImagesResultTable(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False) # Row Index
         self.setFocusPolicy(QtCore.Qt.FocusPolicy(False)) # Cell Highlighting
         self.horizontalHeader().setStyleSheet('QHeaderView::section { border: none; border-bottom: 2px solid green;}')
+        self.setStyleSheet('''
+            QToolTip {
+                color: black;
+                background: white;
+            }
+
+            QTableWidget::item:selected {
+                border: 1px solid #F37021;
+                background-color:
+                rgba(255, 255, 255, 128);
+            }
+        ''')
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+        self.cellClicked.connect(self.cell_item_clicked)
 
         self.setAutoScroll(True)
         self.setAlternatingRowColors(True)
         self.setColumnCount(len(self.COLUMNS))
         self.setRowCount(0)
         self.setupColumns()
+        self.loadRows(images=images)
 
+        # Item Context Menu
+        self.contextMenu = QtWidgets.QMenu(self)
+        self.save_controls = self.contextMenu.addAction("Id")
+        self.defisheye = self.contextMenu.addAction("Path")
+        self.stopRecorder = self.contextMenu.addAction("Date created")
+
+    def cell_item_clicked(self, row, column):
+        self.selected_item = (row, column)
+
+        if column == 0:
+            print(row)
+        # print("Row %d and Column %d was clicked" % (row, column))
 
     def setupColumns(self):
         font = QtGui.QFont("Poppins Medium", pointSize=7, weight=75)
@@ -204,4 +243,24 @@ class ImagesResultTable(QtWidgets.QTableWidget):
             self.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.Stretch)
             self.setItemDelegateForColumn(i, AlignDelegate(self))
         self.verticalHeader().setDefaultSectionSize(44)
-        
+    
+    def loadRows(self, images:list):
+        images:list[dict] = images
+        row_count = len(images)
+        self.setRowCount(row_count)
+
+        for row in range(row_count):
+            print(images[row]['path'])
+            image = QtWidgets.QTableWidgetItem(str(row+1))
+            image.setToolTip(
+            """
+                <ul style='margin: 0px; padding: 0px; list-style: none;'> 
+                    <li style='margin-bottom: 0.5em;'> <b>id:</b> {id}</li> 
+                    <li style='margin-bottom: 0.5em;'> <b>path:</b> {path}</li> 
+                    <li style='margin-bottom: 0.5em;'> <b>created:</b> {created}</li> 
+                </ul> 
+            """.format(id=images[row]['id'], path=images[row]['path'], created=images[row]['created']))
+ 
+            self.setItem(row, 0, image)
+            self.setItem(row, 1, QtWidgets.QTableWidgetItem(images[row]['classification']))
+            self.setItem(row, 2, QtWidgets.QTableWidgetItem('{:.2f}'.format(images[row]['confidence']*100)))
