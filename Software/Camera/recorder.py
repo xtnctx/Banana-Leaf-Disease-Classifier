@@ -58,17 +58,10 @@ class Recorder(QtCore.QThread):
         print(f'New selected path is: {self.selectedPath}')
 
     def saveImage(self, imagePath, image):
-        imageName = settings.imageName
-        f_extension = settings.f_extension
-        
         # Create folder if does not exist
         if not os.path.isdir(imagePath):
             os.mkdir(imagePath)
-        
-        # Generate new file name
-        fileNextCount = len(os.listdir(imagePath)) + 1
-        self.image_path = f'{imagePath}/{imageName+str(fileNextCount)+f_extension}'
-        
+
         # Create a file
         if os.path.exists(self.image_path):
             print("image already exist.")
@@ -88,25 +81,36 @@ class Recorder(QtCore.QThread):
         print(yhat)
         print(type(score))
 
+        classification = settings.class_names[np.argmax(score)]
+        confidence = np.max(score)
+
         print(
             "This image most likely belongs to {} with a {:.2f} percent confidence."
-            .format(settings.class_names[np.argmax(score)], 100 * np.max(score))
+            .format(classification, confidence)
         )
+
+        imagePath = f'{self.selectedPath}/{classification}'
+        imageName = settings.imageName
+        f_extension = settings.f_extension
+
+        # Generate new file name
+        fileNextCount = len(os.listdir(imagePath)) + 1
+        self.image_path = f'{imagePath}/{imageName+str(fileNextCount)+f_extension}'
 
         today = Analytics.get_clock()
         self.image = Image(
             id = Analytics.create_new_id(),
             path = self.image_path,
-            classification = settings.class_names[np.argmax(score)],
-            confidence = float(np.max(score)),
+            classification = classification,
+            confidence = float(confidence),
             shape = img_array.shape,
-            type = settings.f_extension,
+            type = f_extension,
             created = today,
             modified = today
         )
 
         self.on_classify.emit(True)
-        return score # Confidence
+        return (classification, confidence)
 
     def onCamSelectedIndex(self, index):
         self.selectedCameraIndex = index
@@ -151,18 +155,13 @@ class Recorder(QtCore.QThread):
                         ),
                         cv2.COLOR_BGR2RGB
                     ).astype(np.float32)
-                    result = self.classify(img_array)
+                    classification, confidence = self.classify(img_array)
 
-                    classification = settings.class_names[np.argmax(result)]
-                    confidence = 100 * np.max(result)
-
-                    for cnames in settings.class_names:
-                        if cnames == classification:
-                            print(f'saving to {classification}')
-
+                    for cname in settings.class_names:
+                        if cname == classification:
                             # Save original image
                             self.saveImage(
-                                f'{self.selectedPath}/{cnames}',
+                                f'{self.selectedPath}/{cname}',
                                 cv2.cvtColor(resized_cropped, cv2.COLOR_BGR2RGB)
                             )
                     
