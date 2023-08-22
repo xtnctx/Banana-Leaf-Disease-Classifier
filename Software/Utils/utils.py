@@ -62,11 +62,12 @@ class Project:
         self.update_project_prefs(prefs)
 
     @staticmethod
-    def mkNewProject(path:str) -> None:
+    def mkNewProject(path:str) -> dict:
         ''' Initialize new project (create Folders & analytics) '''
         os.makedirs(f'{path}/{settings.b_sigatoka}', exist_ok=True)
         os.makedirs(f'{path}/{settings.y_sigatoka}', exist_ok=True)
-        Analytics.create_file(path)
+        analytics_read = Analytics.create_file(path)
+        return analytics_read
 
     @staticmethod
     def is_project(path:str) -> bool:
@@ -140,7 +141,7 @@ class Analytics:
                 self.data:dict = json.load(f)
 
     @staticmethod
-    def create_file(path:str) -> None:
+    def create_file(path:str) -> dict:
         today = Analytics.get_clock()
         data = {
             'user': Analytics.user(),
@@ -158,6 +159,7 @@ class Analytics:
         json_object = json.dumps(data, indent=4)
         with open(f'{path}/{settings.Dev.analytics_file}', "w") as outfile:
             outfile.write(json_object)
+        return data
 
     def add_image(self, image:Image) -> None:
         with open(f'{self.path}/{settings.Dev.analytics_file}', "r+") as outfile:
