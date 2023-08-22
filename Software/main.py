@@ -13,8 +13,6 @@ class Root(QtWidgets.QMainWindow):
     WINDOW_WIDTH = settings.WINDOW_WIDTH
     WINDOW_HEIGHT = settings.WINDOW_HEIGHT
 
-    project = Project()
-
     selectedPath = ''
     availableCameras = {}
 
@@ -22,6 +20,7 @@ class Root(QtWidgets.QMainWindow):
         super().__init__()
         hasFolderSelected = True
 
+        self.project = Project()
         self.analytics = Analytics(path=self.project.path)
 
         self.centralwidget = QtWidgets.QWidget(self)
@@ -48,6 +47,8 @@ class Root(QtWidgets.QMainWindow):
 
         if not hasFolderSelected:
             self.ui.camera_group_box.setDisabled(True)
+            self.toolBar.actionAnalytics.setDisabled(True)
+            self.toolBar.actionCamera.setDisabled(True)
         self.mainLayout.addWidget(self.ui)
 
         # Center the main window
@@ -59,8 +60,6 @@ class Root(QtWidgets.QMainWindow):
 
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
-
-        self.ui.camera_group_box.setEnabled(True)
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
@@ -78,10 +77,13 @@ class Root(QtWidgets.QMainWindow):
         # Create new or load project
         if self.project.path != '': 
             if not Project.is_project(self.project.path):
-                Project.mkNewProject(self.project.path)
+                analytics_read = Project.mkNewProject(self.project.path)
                 self.analytics.path = self.project.path
+                self.analytics.data = analytics_read
                 self.toolBar.update()
             self.toolBar.setFolderIconToNormal()
+            self.toolBar.actionAnalytics.setEnabled(True)
+            self.toolBar.actionCamera.setEnabled(True)
 
             if not self.ui.recorder.isRunning():
                 self.ui.videoCapture.setText('')
@@ -101,8 +103,6 @@ class Root(QtWidgets.QMainWindow):
     
     def selectCamera(self):
         ''' Camera'''
-        if self.project.path == '':
-            return
         self.ui.recorder.pause.emit(True)
         self.availableCameras = CamOptions.get_available_cameras()
         self.ui.recorder.pause.emit(False)
@@ -118,9 +118,10 @@ class Root(QtWidgets.QMainWindow):
             self.camOption.show()
     
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        self.ui.recorder.isOpened = False
-        print('Closing ...')
-        time.sleep(2)
+        if self.ui.recorder.isRunning():
+            self.ui.recorder.isOpened = False
+            print('Closing ...')
+            time.sleep(2)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
