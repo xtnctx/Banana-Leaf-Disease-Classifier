@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
+from Widgets.imagePreview import PreviewImage
 from Config import settings
 
 class AnalyticsWindow(QtWidgets.QWidget):
@@ -168,7 +169,7 @@ class AnalyticsWindow(QtWidgets.QWidget):
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-    
+
 
 class AlignDelegate(QtWidgets.QStyledItemDelegate): # Table.cell.alignCenter 
     def initStyleOption(self, option, index):
@@ -185,7 +186,7 @@ class ImagesResultTable(QtWidgets.QTableWidget):
         super().__init__()
 
         # keys: ['id', 'path', 'classification', 'confidence', 'shape', 'type', 'created', 'modified']
-        images:list[dict] = images
+        self.images:list[dict] = images
 
         self.setGeometry(QtCore.QRect(10, 27, 432, 251))
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -219,7 +220,7 @@ class ImagesResultTable(QtWidgets.QTableWidget):
         self.setColumnCount(len(self.COLUMNS))
         self.setRowCount(0)
         self.setupColumns()
-        self.loadRows(images=images)
+        self.loadRows(images=self.images)
 
         # Item Context Menu
         self.contextMenu = QtWidgets.QMenu(self)
@@ -231,8 +232,9 @@ class ImagesResultTable(QtWidgets.QTableWidget):
         self.selected_item = (row, column)
 
         if column == 0:
-            print(row)
+            self.second_ui = PreviewImage(QtGui.QPixmap(self.images[row]['path']))
         # print("Row %d and Column %d was clicked" % (row, column))
+    
 
     def setupColumns(self):
         font = QtGui.QFont("Poppins Medium", pointSize=7, weight=75)
