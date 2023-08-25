@@ -259,9 +259,17 @@ class ImagesResultTable(QtWidgets.QTableWidget):
                 <ul style='margin: 0px; padding: 0px; list-style: none;'> 
                     <li style='margin-bottom: 0.5em;'> <b>id:</b> {id}</li> 
                     <li style='margin-bottom: 0.5em;'> <b>path:</b> {path}</li> 
+                    <li style='margin-bottom: 0.5em;'> <b>tensor_shape:</b> {width} x {height}</li> 
                     <li style='margin-bottom: 0.5em;'> <b>created:</b> {created}</li> 
                 </ul> 
-            """.format(id=images[row]['id'], path=images[row]['path'], created=images[row]['created']))
+            """.format(
+                    id=images[row]['id'],
+                    path=images[row]['path'],
+                    width=images[row]['tensor_shape'][0],
+                    height=images[row]['tensor_shape'][1],
+                    created=images[row]['created']
+                )
+            )
  
             self.setItem(row, 0, image)
             self.setItem(row, 1, QtWidgets.QTableWidgetItem(images[row]['classification']))
