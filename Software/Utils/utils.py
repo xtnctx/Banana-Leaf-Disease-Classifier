@@ -89,7 +89,7 @@ class Image:
     path:str
     classification:str
     confidence:float
-    shape:tuple
+    tensor_shape:tuple
     type:str
     created:str
     modified:str
@@ -108,7 +108,7 @@ class Analytics:
                     path:                   directory of image - type=str\n
                     classification:         black or yellow sigatoka = type=str\n
                     confidence:             prediction confidence level - type=float\n
-                    shape:                  image resolution and channel - type=tuple\n
+                    tensor_shape:                  image resolution and channel - type=tuple\n
                     type:                   .jpg\n
                     created:                datetime (Weekday, mm/dd/yy - time)\n
                     modified:               datetime (Weekday, mm/dd/yy - time)\n
@@ -153,6 +153,7 @@ class Analytics:
             'yellow_sigatoka': {},
             'image_count': 0,
             'overall_confidence': 0.0,
+
             'is_project': True
         }
 
