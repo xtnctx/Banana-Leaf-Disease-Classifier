@@ -1,6 +1,7 @@
 from PyQt5 import QtGui, QtCore
 from Utils.utils import Analytics, Image
 from Config import settings
+from . import foreground_extraction as forex
 
 import cv2
 import os
@@ -27,6 +28,9 @@ class Recorder(QtCore.QThread):
     # Latest output
     image:Image = None
     image_path = ''
+
+    # Foreground Extraction
+    grabcut = forex.GrabCut()
 
     def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
@@ -103,7 +107,7 @@ class Recorder(QtCore.QThread):
             path = self.image_path,
             classification = classification,
             confidence = float(confidence),
-            shape = img_array.shape,
+            tensor_shape = img_array.shape,
             type = f_extension,
             created = today,
             modified = today
@@ -124,6 +128,8 @@ class Recorder(QtCore.QThread):
             ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
 
+            print(self.parent.grabcut_checkbox.isChecked())
+
             if ret and not self.pauseValue:
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 rgbImage = cv2.flip(rgbImage, 1)
@@ -137,7 +143,7 @@ class Recorder(QtCore.QThread):
                 minY, maxY = centerY-radiusY, centerY+radiusY
 
                 cropped = rgbImage[minX:maxX, minY:maxY]
-                resized_cropped = cv2.resize(cropped, (w, h)) 
+                resized_cropped = cv2.resize(cropped, (w, h))
 
                 bytesPerLine = ch * w
                 convertToQtFormat = QtGui.QImage(resized_cropped, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
@@ -146,6 +152,9 @@ class Recorder(QtCore.QThread):
 
                 # Save current frame
                 if self.doCaptureValue:
+                    if self.parent.grabcut_checkbox.isChecked():
+                        resized_cropped = self.grabcut.extract(image=resized_cropped, rect=self.parent.resizableRect.getRect())
+
                     # Classify resized image based on model's input_shape
                     img_array = cv2.cvtColor(
                         cv2.resize(
@@ -154,8 +163,9 @@ class Recorder(QtCore.QThread):
                             interpolation = cv2.INTER_AREA
                         ),
                         cv2.COLOR_BGR2RGB
-                    ).astype(np.float32)
-                    classification, confidence = self.classify(img_array)
+                    )
+
+                    classification, confidence = self.classify(img_array.astype(np.float32))
 
                     for cname in settings.class_names:
                         if cname == classification:
@@ -172,7 +182,6 @@ class Recorder(QtCore.QThread):
                             'image_path': self.image_path
                         }
                     )
-                    
                     
                     self.doCaptureValue = False
         self.cap.release()
