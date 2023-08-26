@@ -17,10 +17,10 @@ class UI(QtWidgets.QWidget):
         image_path = results['image_path']
 
         if classification == settings.b_sigatoka:
-            self.black_sigatoka_label.setText('{} ({:.2f})'.format(classification, confidence))
+            self.black_sigatoka_label.setText('{} ({:.2f}%)'.format(classification, confidence*100))
             self.yellow_sigatoka_label.setText(settings.y_sigatoka)
         elif classification == settings.y_sigatoka:
-            self.yellow_sigatoka_label.setText('{} ({:.2f})'.format(classification, confidence))
+            self.yellow_sigatoka_label.setText('{} ({:.2f}%)'.format(classification, confidence*100))
             self.black_sigatoka_label.setText(settings.b_sigatoka)
         
         self.image_preview.updateImage(imagePath=image_path)
@@ -108,7 +108,7 @@ class UI(QtWidgets.QWidget):
         camera_layout_box = QtWidgets.QVBoxLayout()
 
         controlsLayout = QtWidgets.QGridLayout()
-        for row in range(4):
+        for row in range(5):
             controlsLayout.setRowMinimumHeight(row, 60)
 
         font.setPointSize(9)
@@ -131,25 +131,36 @@ class UI(QtWidgets.QWidget):
         self.contrastSlider.setOrientation(QtCore.Qt.Horizontal)
         controlsLayout.addWidget(self.contrastSlider, 1, 1, 1, 3)
 
+        # Sharpness
+        self.sharpness_label = QtWidgets.QLabel("Sharpness")
+        self.sharpness_label.setFont(font)
+        controlsLayout.addWidget(self.sharpness_label, 2, 0, 1, 1)
+        
+        self.sharpnessSlider = QtWidgets.QSlider()
+        self.sharpnessSlider.setOrientation(QtCore.Qt.Horizontal)
+        # self.sharpnessSlider.setRange(0, 99)
+        # self.sharpnessSlider.valueChanged.connect(self.set_sharpness)
+        controlsLayout.addWidget(self.sharpnessSlider, 2, 1, 1, 3)
+
         # Zoom
         self.zoom_label = QtWidgets.QLabel("Zoom")
         self.zoom_label.setFont(font)
-        controlsLayout.addWidget(self.zoom_label, 2, 0, 1, 1)
+        controlsLayout.addWidget(self.zoom_label, 3, 0, 1, 1)
         
         self.zoomSlider = QtWidgets.QSlider()
         self.zoomSlider.setOrientation(QtCore.Qt.Horizontal)
         self.zoomSlider.setRange(0, 19)
         self.zoomSlider.valueChanged.connect(self.zoom)
-        controlsLayout.addWidget(self.zoomSlider, 2, 1, 1, 3)
+        controlsLayout.addWidget(self.zoomSlider, 3, 1, 1, 3)
 
         # GrabCut
         self.grabcut_label = QtWidgets.QLabel("GrabCut")
         self.grabcut_label.setFont(font)
-        controlsLayout.addWidget(self.grabcut_label, 3, 0, 1, 1)
+        controlsLayout.addWidget(self.grabcut_label, 4, 0, 1, 1)
         
         self.grabcut_checkbox = QtWidgets.QCheckBox()
         self.grabcut_checkbox.clicked.connect(self.grabcut_bool)
-        controlsLayout.addWidget(self.grabcut_checkbox, 3, 1, 1, 3)
+        controlsLayout.addWidget(self.grabcut_checkbox, 4, 1, 1, 3)
 
         camera_layout_box.addLayout(controlsLayout)
 
