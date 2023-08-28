@@ -13,6 +13,7 @@ class Project:
           self._path = ''
           self.brightness = 0
           self.contrast = 0
+          self.sharpness = 0
           self.zoom = 0
           self.isDefisheye = False
           self.isGrabCut = False
@@ -30,6 +31,7 @@ class Project:
         self._path = prefs["Project Path"]
         self.brightness = prefs["brightness"]
         self.contrast = prefs["contrast"]
+        self.sharpness = prefs["sharpness"]
         self.zoom = prefs["zoom"]
         self.isDefisheye = prefs["isDefisheye"]
         self.isGrabCut = prefs["isGrabCut"]
@@ -48,11 +50,12 @@ class Project:
             outfile.truncate()
         self._path = dir
     
-    def save_controls(self, brightness:int, contrast:int, zoom:int, isDefisheye:bool, isGrabCut:bool):
+    def save_controls(self, brightness:int, contrast:int, sharpness:int, zoom:int, isDefisheye:bool, isGrabCut:bool):
         with open(f'./{settings.Dev.pref_file}', 'r+') as outfile:
             prefs:dict = json.load(outfile)
             prefs["brightness"] = brightness
             prefs["contrast"] = contrast
+            prefs["sharpness"] = sharpness
             prefs["zoom"] = zoom
             prefs["isDefisheye"] = isDefisheye
             prefs["isGrabCut"] = isGrabCut
@@ -239,7 +242,9 @@ class Analytics:
 
     def overall_confidence(self) -> float:
         return self.data['overall_confidence']
-
+    
+    def get_latest_image(self) -> dict:
+        return self.images()[-1]
 
 
 class AppStyle:
