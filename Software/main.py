@@ -34,6 +34,9 @@ class Root(QtWidgets.QMainWindow):
         if self.project.path == "":
             self.toolBar.askFolderIcon()
             hasFolderSelected = False
+        else:
+            self.toolBar.actionFolder.setToolTip(self.project.path)
+
         self.toolBar.actionFolder.triggered.connect(self.selectPath)
         self.toolBar.actionAnalytics.triggered.connect(self.showAnalytics)
         self.toolBar.actionCamera.triggered.connect(self.selectCamera)
@@ -115,6 +118,7 @@ class Root(QtWidgets.QMainWindow):
             self.camOption = CamOptions(devices=list(self.availableCameras.values()))
             self.camOption.camUsed.connect(self.ui.recorder.onCamSelectedIndex)
             self.ui.recorder.pause.emit(False)
+            self.toolBar.actionCamera.setToolTip(self.camOption.comboBox.currentText())
             self.camOption.show()
     
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
