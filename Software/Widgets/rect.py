@@ -28,7 +28,7 @@ class ResizableRect(QtWidgets.QGraphicsRectItem):
         )
     
     def getRect(self):
-        return (self.x(), self.y(), self.rect().width(), self.rect().height())
+        return (int(self.x()), int(self.y()), int(self.rect().width()), int(self.rect().height()))
 
     def getEdges(self, pos):
         # return a proper Qt.Edges flag that reflects the possible edge(s) at
