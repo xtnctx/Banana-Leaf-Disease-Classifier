@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
 from Widgets.imagePreview import PreviewImage
+from Utils import style
 from Config import settings
 
 class AnalyticsWindow(QtWidgets.QWidget):
@@ -200,18 +201,7 @@ class ImagesResultTable(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False) # Row Index
         self.setFocusPolicy(QtCore.Qt.FocusPolicy(False)) # Cell Highlighting
         self.horizontalHeader().setStyleSheet('QHeaderView::section { border: none; border-bottom: 2px solid green;}')
-        self.setStyleSheet('''
-            QToolTip {
-                color: black;
-                background: white;
-            }
-
-            QTableWidget::item:selected {
-                border: 1px solid #F37021;
-                background-color:
-                rgba(255, 255, 255, 128);
-            }
-        ''')
+        self.setStyleSheet(style.table)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.cellClicked.connect(self.cell_item_clicked)
 
