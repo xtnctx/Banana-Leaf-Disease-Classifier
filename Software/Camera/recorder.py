@@ -9,13 +9,20 @@ import os
 import tensorflow as tf
 import numpy as np
 
+import time
+
 class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
-    scale = QtCore.pyqtSignal(float)
     doCapture = QtCore.pyqtSignal(bool)
     pause = QtCore.pyqtSignal(bool)
     projectPath = QtCore.pyqtSignal(str)
     on_classify = QtCore.pyqtSignal(bool)
+
+    # Camera properties
+    brightness = QtCore.pyqtSignal(int)
+    contrast = QtCore.pyqtSignal(int)
+    sharpness = QtCore.pyqtSignal(int)
+    scale = QtCore.pyqtSignal(float)
 
     # OpenCV capture device
     selectedCameraIndex = 0
@@ -36,6 +43,15 @@ class Recorder(QtCore.QThread):
         QtCore.QThread.__init__(self, parent)
         self.parent = parent
 
+        self.brightnessValue = 0
+        self.brightness.connect(self.brightnessChanged)
+
+        self.contrastValue = 0
+        self.contrast.connect(self.contrastChanged)
+
+        self.sharpnessValue = 0
+        self.sharpness.connect(self.sharpnessChanged)
+
         self.scaleValue = 1
         self.scale.connect(self.scaleChanged)
 
@@ -48,8 +64,24 @@ class Recorder(QtCore.QThread):
         self.selectedPath = selectedPath
         self.projectPath.connect(self.projectPathSelected)
 
+    def brightnessChanged(self, value):
+        self.brightnessValue = value
+        self.cap.set(cv2.CAP_PROP_BRIGHTNESS, value)
+        print(f'Brightness: {value}')
+    
+    def contrastChanged(self, value):
+        self.contrastValue = value
+        self.cap.set(cv2.CAP_PROP_CONTRAST, value)
+        print(f'Contrast: {value}')
+    
+    def sharpnessChanged(self, value):
+        self.sharpnessValue = value
+        self.cap.set(cv2.CAP_PROP_SHARPNESS, value)
+        print(f'Sharpness: {value}')
+
     def scaleChanged(self, value):
         self.scaleValue = value
+        print(f'Zoom: {value}')
     
     def onCapture(self, signal):
         self.doCaptureValue = signal
@@ -120,15 +152,18 @@ class Recorder(QtCore.QThread):
         self.selectedCameraIndex = index
         self.pauseValue = True
         self.cap = cv2.VideoCapture(self.selectedCameraIndex)
+        self.isOpened = self.cap.isOpened()
         self.pauseValue = False
  
     def run(self):
+        while not self.isOpened:
+            self.parent.videoCapture.setText('Trying to open the camera, please wait.')
+            self.cap = cv2.VideoCapture(self.selectedCameraIndex)
+            self.isOpened = self.cap.isOpened()
+
         while self.isOpened:
-            # print(self.parent.resizableRect.getRect())
             ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
-
-            print(self.parent.grabcut_checkbox.isChecked())
 
             if ret and not self.pauseValue:
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -185,3 +220,4 @@ class Recorder(QtCore.QThread):
                     
                     self.doCaptureValue = False
         self.cap.release()
+        cv2.destroyAllWindows()
