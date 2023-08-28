@@ -43,7 +43,7 @@ IMAGE_SHAPE = (224, 224, 3)
 imageName = 'capture'
 f_extension = '.jpg'
 
-
+default_image_preview = './default-placeholder.png'
 
 
 #>_>_>_>_>_>_>_>_>_>_>_>_DEV: P R O J E C T  F I L E>_>_>_>_>_>_>_>_>_>_>_>_#
