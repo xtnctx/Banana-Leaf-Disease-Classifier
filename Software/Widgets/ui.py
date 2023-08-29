@@ -5,17 +5,12 @@ from Camera.recorder import Recorder
 from Widgets.camOpts import CamOptions
 from Utils.utils import Analytics
 from Utils import style
-from Utils.system import getAccentColor
 from Config import settings
 
 
 class UI(QtWidgets.QWidget):
     analytics:Analytics = None
     recorder_results = QtCore.pyqtSignal(dict)
-
-    color = getAccentColor()
-    qcolor = f'rgb({color[0]}, {color[1]}, {color[2]})'
-    windowsAccentColor =  QtGui.QColor(color[0], color[1], color[2])
 
     def get_results(self, results):
         classification = results['classification']
@@ -24,17 +19,17 @@ class UI(QtWidgets.QWidget):
 
         if classification == settings.b_sigatoka:
             self.black_sigatoka_label.setText('{} ({:.2f}%)'.format(classification, confidence*100))
-            self.black_sigatoka_label.setStyleSheet(f'border: 1px solid {self.qcolor}; color: #000000')
+            self.black_sigatoka_label.setStyleSheet(style.right_box)
 
             self.yellow_sigatoka_label.setText(settings.y_sigatoka)
-            self.yellow_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
+            self.yellow_sigatoka_label.setStyleSheet(style.wrong_box)
 
         elif classification == settings.y_sigatoka:
             self.yellow_sigatoka_label.setText('{} ({:.2f}%)'.format(classification, confidence*100))
-            self.yellow_sigatoka_label.setStyleSheet(f'border: 1px solid {self.qcolor}; color: #000000')
+            self.yellow_sigatoka_label.setStyleSheet(style.right_box)
 
             self.black_sigatoka_label.setText(settings.b_sigatoka)
-            self.black_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
+            self.black_sigatoka_label.setStyleSheet(style.wrong_box)
         
         self.image_preview.updateImage(imagePath=image_path)
 
@@ -114,14 +109,14 @@ class UI(QtWidgets.QWidget):
         if hasFolderSelected:
             classification = self.parent.analytics.get_latest_image()['classification']
             if classification == settings.b_sigatoka:
-                self.black_sigatoka_label.setStyleSheet(f'border: 1px solid {self.qcolor}; color: #000000')
-                self.yellow_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
+                self.black_sigatoka_label.setStyleSheet(style.right_box)
+                self.yellow_sigatoka_label.setStyleSheet(style.wrong_box)
             elif classification == settings.y_sigatoka:
-                self.yellow_sigatoka_label.setStyleSheet(f'border: 1px solid {self.qcolor}; color: #000000')
-                self.black_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
+                self.yellow_sigatoka_label.setStyleSheet(style.right_box)
+                self.black_sigatoka_label.setStyleSheet(style.wrong_box)
         else:
-            self.black_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
-            self.yellow_sigatoka_label.setStyleSheet('border: 1px solid #C5C5C5; color: #C5C5C5')
+            self.black_sigatoka_label.setStyleSheet(style.wrong_box)
+            self.yellow_sigatoka_label.setStyleSheet(style.wrong_box)
 
         bottom_layout.addWidget(self.black_sigatoka_label)
         bottom_layout.addWidget(self.image_preview)
@@ -141,7 +136,7 @@ class UI(QtWidgets.QWidget):
         font.setPointSize(9)
 
         sliderPalette = QtGui.QPalette()
-        sliderPalette.setColor(QtGui.QPalette.Highlight,self.windowsAccentColor)
+        sliderPalette.setColor(QtGui.QPalette.Highlight, style.windowsAccentColor)
 
         # Brightness
         self.brightness_label = QtWidgets.QLabel("Brightness")
@@ -329,7 +324,7 @@ class UI(QtWidgets.QWidget):
     def zoom(self, value):
         zoomValue = round(1-(value/20), 2)
         self.recorder.scale.emit(zoomValue)
-        self.zoom_valuelabel.setText(str(value))
+        self.zoom_valuelabel.setText(str(value + 1))
 
     
     def set_controls_to_default(self):
@@ -346,7 +341,7 @@ class UI(QtWidgets.QWidget):
         self.recorder.sharpness.emit(50)
 
         self.zoomSlider.setValue(0)
-        self.zoom_valuelabel.setText(str(0))
+        self.zoom_valuelabel.setText(str(1))
         self.recorder.scale.emit(1.0)
 
         self.defisheye.setChecked(False)
@@ -368,7 +363,7 @@ class UI(QtWidgets.QWidget):
         self.recorder.sharpness.emit(self.parent.project.sharpness)
 
         self.zoomSlider.setValue(self.parent.project.zoom)
-        self.zoom_valuelabel.setText(str(self.parent.project.zoom))
+        self.zoom_valuelabel.setText(str(self.parent.project.zoom + 1))
         self.recorder.scale.emit(round(1-(self.parent.project.zoom/20), 2))
 
         self.defisheye.setChecked(self.parent.project.isDefisheye)
