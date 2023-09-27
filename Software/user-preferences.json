@@ -1,8 +1,8 @@
 {
     "Project Path": "",
     "brightness": 0,
-    "contrast": 50,
-    "sharpness": 50,
+    "contrast": 10,
+    "sharpness": 10,
     "zoom": 0,
     "isDefisheye": false,
     "isGrabCut": false
