@@ -9,8 +9,6 @@ import os
 import tensorflow as tf
 import numpy as np
 
-import time
-
 class Recorder(QtCore.QThread):
     changePixmap = QtCore.pyqtSignal(QtGui.QImage)
     doCapture = QtCore.pyqtSignal(bool)
@@ -20,8 +18,8 @@ class Recorder(QtCore.QThread):
 
     # Camera properties
     brightness = QtCore.pyqtSignal(int)
-    contrast = QtCore.pyqtSignal(int)
-    sharpness = QtCore.pyqtSignal(int)
+    contrast = QtCore.pyqtSignal(float)
+    sharpness = QtCore.pyqtSignal(float)
     scale = QtCore.pyqtSignal(float)
 
     # OpenCV capture device
@@ -66,17 +64,17 @@ class Recorder(QtCore.QThread):
 
     def brightnessChanged(self, value):
         self.brightnessValue = value
-        self.cap.set(cv2.CAP_PROP_BRIGHTNESS, value)
+        # self.cap.set(cv2.CAP_PROP_BRIGHTNESS, value)
         print(f'Brightness: {value}')
     
     def contrastChanged(self, value):
         self.contrastValue = value
-        self.cap.set(cv2.CAP_PROP_CONTRAST, value)
+        # self.cap.set(cv2.CAP_PROP_CONTRAST, value)
         print(f'Contrast: {value}')
     
     def sharpnessChanged(self, value):
         self.sharpnessValue = value
-        self.cap.set(cv2.CAP_PROP_SHARPNESS, value)
+        # self.cap.set(cv2.CAP_PROP_SHARPNESS, value)
         print(f'Sharpness: {value}')
 
     def scaleChanged(self, value):
@@ -103,6 +101,20 @@ class Recorder(QtCore.QThread):
             print("image already exist.")
             return
         cv2.imwrite(self.image_path, image)
+    
+    def sharp_mask(self, image, kernel_size=(5, 5), sigma=1.0, amount=1.0, threshold=0):
+        blurred = cv2.GaussianBlur(image, kernel_size, sigma)
+        sharpened = float(amount + 1) * image - float(amount) * blurred
+        sharpened = np.maximum(sharpened, np.zeros(sharpened.shape))
+        sharpened = np.minimum(sharpened, 255 * np.ones(sharpened.shape))
+        sharpened = sharpened.round().astype(np.uint8)
+        if threshold > 0:
+            low_contrast_mask = np.absolute(image - blurred) < threshold
+            np.copyto(sharpened, image, where=low_contrast_mask)
+        return sharpened
+    
+    def contrast_brightness(self, image, contrastValue, brightnessValue):
+        return cv2.convertScaleAbs(image, alpha=contrastValue, beta=brightnessValue)
 
     def classify(self, img_array:np.ndarray) -> list:
         ### !!!!!!!!!
@@ -168,6 +180,8 @@ class Recorder(QtCore.QThread):
             if ret and not self.pauseValue:
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 rgbImage = cv2.flip(rgbImage, 1)
+                rgbImage = self.contrast_brightness(rgbImage, contrastValue=self.contrastValue, brightnessValue=self.brightnessValue)
+                rgbImage = self.sharp_mask(rgbImage, amount=self.sharpnessValue)
                 h, w, ch = rgbImage.shape
 
                 #prepare the crop
