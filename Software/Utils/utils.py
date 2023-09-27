@@ -12,8 +12,8 @@ class Project:
     def __init__(self) -> None:
           self._path = ''
           self.brightness = 0
-          self.contrast = 0
-          self.sharpness = 0
+          self.contrast = 0.0
+          self.sharpness = 0.0
           self.zoom = 0
           self.isDefisheye = False
           self.isGrabCut = False
@@ -50,7 +50,7 @@ class Project:
             outfile.truncate()
         self._path = dir
     
-    def save_controls(self, brightness:int, contrast:int, sharpness:int, zoom:int, isDefisheye:bool, isGrabCut:bool):
+    def save_controls(self, brightness:int, contrast:float, sharpness:float, zoom:int, isDefisheye:bool, isGrabCut:bool):
         with open(f'./{settings.Dev.pref_file}', 'r+') as outfile:
             prefs:dict = json.load(outfile)
             prefs["brightness"] = brightness
