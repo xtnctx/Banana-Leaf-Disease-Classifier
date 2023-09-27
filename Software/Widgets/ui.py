@@ -147,7 +147,7 @@ class UI(QtWidgets.QWidget):
         self.brightnessSlider.setOrientation(QtCore.Qt.Horizontal)
         self.brightnessSlider.setStyleSheet(style.slider)
         self.brightnessSlider.setPalette(sliderPalette)
-        self.brightnessSlider.setRange(-64, 64)
+        self.brightnessSlider.setRange(0, 100)
         self.brightnessSlider.valueChanged.connect(self.set_brightness)
         controlsLayout.addWidget(self.brightnessSlider, 0, 1, 1, 1)
 
@@ -167,7 +167,7 @@ class UI(QtWidgets.QWidget):
         self.contrastSlider.setOrientation(QtCore.Qt.Horizontal)
         self.contrastSlider.setStyleSheet(style.slider)
         self.contrastSlider.setPalette(sliderPalette)
-        self.contrastSlider.setRange(0, 100)
+        self.contrastSlider.setRange(10, 30)
         self.contrastSlider.valueChanged.connect(self.set_contrast)
         controlsLayout.addWidget(self.contrastSlider, 1, 1, 1, 1)
 
@@ -186,7 +186,7 @@ class UI(QtWidgets.QWidget):
         self.sharpnessSlider.setOrientation(QtCore.Qt.Horizontal)
         self.sharpnessSlider.setStyleSheet(style.slider)
         self.sharpnessSlider.setPalette(sliderPalette)
-        self.sharpnessSlider.setRange(0, 100)
+        self.sharpnessSlider.setRange(10, 50)
         self.sharpnessSlider.valueChanged.connect(self.set_sharpness)
         controlsLayout.addWidget(self.sharpnessSlider, 2, 1, 1, 1)
 
@@ -312,13 +312,13 @@ class UI(QtWidgets.QWidget):
         self.brightness_valuelabel.setText(str(value))
 
     def set_contrast(self, value):
-        self.recorder.contrast.emit(value)
-        self.contrast_valuelabel.setText(str(value))
+        self.recorder.contrast.emit(value/10)
+        self.contrast_valuelabel.setText(str(value/10))
 
 
     def set_sharpness(self, value):
-        self.recorder.sharpness.emit(value)
-        self.sharpness_valuelabel.setText(str(value))
+        self.recorder.sharpness.emit(value/10)
+        self.sharpness_valuelabel.setText(str(value/10))
 
 
     def zoom(self, value):
@@ -332,13 +332,13 @@ class UI(QtWidgets.QWidget):
         self.brightness_valuelabel.setText(str(0))
         self.recorder.brightness.emit(0)
 
-        self.contrastSlider.setValue(50)
-        self.contrast_valuelabel.setText(str(50))
-        self.recorder.contrast.emit(50)
+        self.contrastSlider.setValue(10)
+        self.contrast_valuelabel.setText(str(1.0))
+        self.recorder.contrast.emit(1.0)
 
-        self.sharpnessSlider.setValue(50)
-        self.sharpness_valuelabel.setText(str(50))
-        self.recorder.sharpness.emit(50)
+        self.sharpnessSlider.setValue(10)
+        self.sharpness_valuelabel.setText(str(1.0))
+        self.recorder.sharpness.emit(1.0)
 
         self.zoomSlider.setValue(0)
         self.zoom_valuelabel.setText(str(1))
