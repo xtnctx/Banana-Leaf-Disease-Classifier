@@ -97,8 +97,9 @@ class UI(QtWidgets.QWidget):
         self.black_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.black_sigatoka_label.setFont(font)
 
+        latest_image = self.parent.analytics.get_latest_image()
         self.image_preview = ImagePreviewWidget(
-            imagePath = self.parent.analytics.get_latest_image()['path'] if hasFolderSelected else ''
+            imagePath = latest_image['path'] if (hasFolderSelected and latest_image != None) else ''
         )
         self.image_preview.clicked.connect(self.previewClicked) 
         
@@ -106,8 +107,8 @@ class UI(QtWidgets.QWidget):
         self.yellow_sigatoka_label.setAlignment(QtCore.Qt.AlignCenter)
         self.yellow_sigatoka_label.setFont(font)
 
-        if hasFolderSelected:
-            classification = self.parent.analytics.get_latest_image()['classification']
+        if hasFolderSelected and latest_image != None:
+            classification = latest_image['classification']
             if classification == settings.b_sigatoka:
                 self.black_sigatoka_label.setStyleSheet(style.right_box)
                 self.yellow_sigatoka_label.setStyleSheet(style.wrong_box)
@@ -287,15 +288,17 @@ class UI(QtWidgets.QWidget):
         if action == self.save_controls:
             self.parent.project.save_controls(
                 brightness = self.brightnessSlider.value(),
-                contrast = self.contrastSlider.value(),
-                sharpness = self.sharpnessSlider.value(),
+                contrast = self.contrastSlider.value() / 10,
+                sharpness = self.sharpnessSlider.value() / 10,
                 zoom = self.zoomSlider.value(),
                 isDefisheye = self.defisheye.isChecked(),
                 isGrabCut = self.grabcut_checkbox.isChecked()
             )
             
         elif action == self.defisheye:
-            self.defisheye.setChecked(self.defisheye.isChecked())
+            value = self.defisheye.isChecked()
+            self.defisheye.setChecked(value)
+            self.recorder.defisheye.emit(value)
 
         elif action == self.setControlsToDefault:
             self.set_controls_to_default()
@@ -315,18 +318,15 @@ class UI(QtWidgets.QWidget):
         self.recorder.contrast.emit(value/10)
         self.contrast_valuelabel.setText(str(value/10))
 
-
     def set_sharpness(self, value):
         self.recorder.sharpness.emit(value/10)
         self.sharpness_valuelabel.setText(str(value/10))
-
 
     def zoom(self, value):
         zoomValue = round(1-(value/20), 2)
         self.recorder.scale.emit(zoomValue)
         self.zoom_valuelabel.setText(str(value + 1))
 
-    
     def set_controls_to_default(self):
         self.brightnessSlider.setValue(0)
         self.brightness_valuelabel.setText(str(0))
@@ -345,6 +345,7 @@ class UI(QtWidgets.QWidget):
         self.recorder.scale.emit(1.0)
 
         self.defisheye.setChecked(False)
+        self.recorder.defisheye.emit(False)
 
         self.grabcut_checkbox.setChecked(False)
         self.resizableRect.hide()
