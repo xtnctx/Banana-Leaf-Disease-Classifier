@@ -2,6 +2,7 @@ from PyQt5 import QtGui, QtCore
 from Utils.utils import Analytics, Image
 from Config import settings
 from . import foreground_extraction as forex
+from . import calibrated
 
 import cv2
 import os
@@ -21,6 +22,7 @@ class Recorder(QtCore.QThread):
     contrast = QtCore.pyqtSignal(float)
     sharpness = QtCore.pyqtSignal(float)
     scale = QtCore.pyqtSignal(float)
+    defisheye = QtCore.pyqtSignal(bool)
 
     # OpenCV capture device
     selectedCameraIndex = 0
@@ -37,6 +39,10 @@ class Recorder(QtCore.QThread):
     # Foreground Extraction
     grabcut = forex.GrabCut()
 
+    # Calibrated JINJIEAN B19 FPV Mini Camera
+    calibrated_camera = calibrated.CalibratedCamera().start()
+    
+
     def __init__(self, parent=None, selectedPath='') -> None:
         QtCore.QThread.__init__(self, parent)
         self.parent = parent
@@ -52,6 +58,9 @@ class Recorder(QtCore.QThread):
 
         self.scaleValue = 1
         self.scale.connect(self.scaleChanged)
+
+        self.defisheyeValue = False
+        self.defisheye.connect(self.defisheyeChanged)
 
         self.doCaptureValue = False
         self.doCapture.connect(self.onCapture)
@@ -80,6 +89,10 @@ class Recorder(QtCore.QThread):
     def scaleChanged(self, value):
         self.scaleValue = value
         print(f'Zoom: {value}')
+    
+    def defisheyeChanged(self, value):
+        self.defisheyeValue = value
+        print(f'Defisheye: {value}')
     
     def onCapture(self, signal):
         self.doCaptureValue = signal
@@ -176,6 +189,9 @@ class Recorder(QtCore.QThread):
         while self.isOpened:
             ret, frame = self.cap.read()
             self.scaleValue = round(self.scaleValue, 2)
+
+            if self.defisheyeValue:
+                frame = self.calibrated_camera.undistort(img=frame)
 
             if ret and not self.pauseValue:
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
